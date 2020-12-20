@@ -11,7 +11,7 @@ fun processStream(inputStream: InputStream): Sequence<String> {
         val reader = BufferedReader(InputStreamReader(inputStream))
         var contentLength: Int
         while (true) {
-            val line = reader.readLine()
+            val line = reader.readLine() ?: continue
             // Parse headers.
             val split = line.split(":")
             if (split.size != 2) {

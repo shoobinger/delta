@@ -4,22 +4,25 @@ import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Timeout
+
+import java.nio.file.Files
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class InitializeSpecification {
+@Timeout(2L)
+abstract class LanguageServerTest {
 
-    KotlinLS languageServer
-    Socket client
-    InputStream inputStream
-    OutputStream outputStream
+    protected KotlinLS languageServer
+    protected Socket client
+    protected InputStream inputStream
 
     @BeforeAll
     void setup() {
         languageServer = new KotlinLS()
         def serverThread = new Thread({ languageServer.startServer(8500) })
         serverThread.start()
+        Thread.sleep(50)
         client = new Socket("localhost", 8500)
         inputStream = client.inputStream
     }
@@ -30,25 +33,19 @@ class InitializeSpecification {
         languageServer.stopServer()
     }
 
-    @Test
-    void "should receive response to an initialize"() {
-        def response = request("initialize", [processId: null, rootUri: "file:///home/someone/projects/project"])
-        assert response.result.capabilities != null
-    }
-
-    private def request(String method, Object params) {
+    protected def request(String method, Object params) {
         def messageId = send(method, params)
-        def text = readOneMessage()
-        def message = new JsonSlurper().parseText(text)
-        assert message.id == messageId
-        message
+        def responseMessage = readOneMessage()
+        assert responseMessage.id == messageId
+        responseMessage
     }
 
-    private String readOneMessage() {
-        TcpKt.processStream(inputStream).iterator().next()
+    protected Map readOneMessage() {
+        def text = TcpKt.processStream(inputStream).iterator().next()
+        new JsonSlurper().parseText(text) as Map
     }
 
-    private String send(String method, Object params) {
+    protected String send(String method, Object params) {
         def messageId = UUID.randomUUID().toString()
         def message = JsonOutput.toJson([
                 jsonrpc: "2.0",
@@ -62,5 +59,12 @@ class InitializeSpecification {
         """.stripIndent().trim()
 
         messageId
+    }
+
+    protected def createWorkspace() {
+        def root = Files.createTempDirectory("kotlin-ls-test-workspace")
+        root.toFile().deleteOnExit()
+
+        root
     }
 }

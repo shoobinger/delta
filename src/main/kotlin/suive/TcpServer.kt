@@ -5,7 +5,6 @@ import org.tinylog.kotlin.Logger
 import suive.method.InitializeMethod
 import suive.model.RequestMessage
 import suive.model.ResponseMessage
-import java.io.OutputStream
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.ExecutorService
@@ -32,27 +31,22 @@ class TcpServer(
             state = "WAITING_FOR_COMMAND"
             val input = client.getInputStream()
             val output = client.getOutputStream()
+            val clientHandle = ClientHandle(output)
             processStream(input).forEach {
                 val message = JSON_MAPPER.readValue<RequestMessage<*>>(it)
-                dispatch(message, output)
+                dispatch(message, clientHandle)
             }
         }
     }
 
-    fun dispatch(message: RequestMessage<*>, outputStream: OutputStream) {
+    fun dispatch(message: RequestMessage<*>, clientHandle: ClientHandle) {
         val method = when (message.method) {
-            "initialize" -> InitializeMethod()
+            "initialize" -> InitializeMethod(clientHandle)
             else -> return
         }
         val methodResult = method.process(message.params)
         val responseMessage = JSON_MAPPER.writeValueAsString(ResponseMessage.Success(message.id, methodResult))
-
-        outputStream.write(
-            """
-            Content-Length: ${responseMessage.length}
-            
-            $responseMessage""".trimIndent().trim().toByteArray()
-        )
+        clientHandle.send(responseMessage)
     }
 
     fun stop() {
