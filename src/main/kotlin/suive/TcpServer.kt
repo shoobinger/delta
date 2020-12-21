@@ -33,7 +33,8 @@ class TcpServer(
             val output = client.getOutputStream()
             val clientHandle = ClientHandle(output)
             processStream(input).forEach {
-                val message = JSON_MAPPER.readValue<RequestMessage<*>>(it)
+                Logger.info { "Message received: $it" }
+                val message = JSON_MAPPER.readValue<RequestMessage<*>>(it) // TODO this may be a notification.
                 dispatch(message, clientHandle)
             }
         }

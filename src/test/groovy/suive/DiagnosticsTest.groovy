@@ -18,12 +18,12 @@ class DiagnosticsTest extends LanguageServerTest {
             }
         """.stripIndent().trim()
 
-        request("initialize", [processId: null, rootUri: workspaceRoot.toAbsolutePath().toString()])
+        testEditor.initialize(workspaceRoot)
 
-        def diagnosticsResponse  = readOneMessage()
-        assert diagnosticsResponse.uri == testClass.toAbsolutePath().toString()
-        assert diagnosticsResponse.diagnostics.size == 1
-        def diagnostic = diagnosticsResponse.diagnostic.first()
+        def diagnosticNotification  = testEditor.getNotification("textDocument/publishDiagnostics")
+        assert diagnosticNotification.params.uri == testClass.toAbsolutePath().toString()
+        assert diagnosticNotification.params.diagnostics.size == 1
+        def diagnostic = diagnosticNotification.params.diagnostics.first()
         assert diagnostic.message == "unresolved reference: invalidSymbol"
         assert diagnostic.range.start.line == 3
         assert diagnostic.range.start.character == 13
