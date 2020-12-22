@@ -1,11 +1,11 @@
 package suive.model
 
 sealed class ResponseMessage(
-    open val id: String // TODO this may be an integer.
+    open val id: String // TODO this may be an integer per spec.
 ) : Message() {
-    data class Success<Result>(
+    data class Success<R : Result>(
         override val id: String,
-        val result: Result?
+        val result: R?
     ) : ResponseMessage(id)
 
     data class Error(

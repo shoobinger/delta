@@ -1,8 +1,10 @@
 package suive
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.tinylog.kotlin.Logger
-import suive.method.InitializeMethod
+import suive.model.NotificationMessage
 import suive.model.RequestMessage
 import suive.model.ResponseMessage
 import java.net.ServerSocket
@@ -21,6 +23,8 @@ class TcpServer(
 
     var state: String = "NOT_STARTED"
 
+    private val jsonConverter = ObjectMapper().registerModule(KotlinModule())
+
     fun start() {
         serverSocket = ServerSocket(port)
         Logger.info { "Server socket started on port $port" }
@@ -34,20 +38,26 @@ class TcpServer(
             val clientHandle = ClientHandle(output)
             processStream(input).forEach {
                 Logger.info { "Message received: $it" }
-                val message = JSON_MAPPER.readValue<RequestMessage<*>>(it) // TODO this may be a notification.
-                dispatch(message, clientHandle)
+                val message = jsonConverter.readValue<RequestMessage>(it) // TODO this may be a notification.
+
+                Application.dispatch(
+                    methodName = message.method,
+                    paramsRaw = message.params,
+                    handleResult = { output ->
+                        val responseMessage =
+                            jsonConverter.writeValueAsString(ResponseMessage.Success(message.id, output))
+                        clientHandle.send(responseMessage)
+                    },
+                    handleNotification = { method, params ->
+                        val responseMessage = jsonConverter.writeValueAsString(NotificationMessage(method, params))
+                        clientHandle.send(responseMessage)
+                    },
+                    handleError = {
+                        // TODO handle error
+                    }
+                )
             }
         }
-    }
-
-    fun dispatch(message: RequestMessage<*>, clientHandle: ClientHandle) {
-        val method = when (message.method) {
-            "initialize" -> InitializeMethod(clientHandle)
-            else -> return
-        }
-        val methodResult = method.process(message.params)
-        val responseMessage = JSON_MAPPER.writeValueAsString(ResponseMessage.Success(message.id, methodResult))
-        clientHandle.send(responseMessage)
     }
 
     fun stop() {

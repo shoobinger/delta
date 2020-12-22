@@ -1,16 +1,8 @@
 package suive.method
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import kotlin.reflect.KClass
+import suive.model.Params
+import suive.model.Result
 
-abstract class Method<in Params : Any, out Result : Any>(
-    private val paramsClass: KClass<Params>,
-    private val objectMapper: ObjectMapper
-) {
-
-    fun process(params: Any?): Any {
-        return doProcess(objectMapper.convertValue(params, paramsClass.java))
-    }
-
-    protected abstract fun doProcess(params: Params): Result
+abstract class Method<P : Params, out R : Result> {
+    abstract fun doProcess(params: P): R
 }

@@ -4,7 +4,6 @@ import org.tinylog.kotlin.Logger
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
-import java.io.OutputStream
 
 fun processStream(inputStream: InputStream): Sequence<String> {
     return sequence {

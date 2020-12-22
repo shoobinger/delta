@@ -1,6 +1,6 @@
 package suive.model
 
-data class NotificationMessage<Params>(
+data class NotificationMessage<P : Params>(
     val method: String,
-    val params: Params
+    val params: P
 ) : Message()
