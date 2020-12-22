@@ -10,7 +10,8 @@ import suive.model.Output
 import suive.model.Params
 import suive.service.DiagnosticService
 import suive.task.DiagnosticsTask
-import kotlin.concurrent.thread
+import suive.util.NamedThreadFactory
+import java.util.concurrent.Executors
 import kotlin.reflect.KClass
 
 object MethodDispatcher {
@@ -28,6 +29,8 @@ object MethodDispatcher {
 
     private val dispatchTable = actionUnits.associateBy { it.methodName }
 
+    private val workerThreadPool = Executors.newCachedThreadPool(NamedThreadFactory("Worker"))
+
     fun dispatch(
         request: Request,
         methodName: String,
@@ -39,8 +42,7 @@ object MethodDispatcher {
         @Suppress("UNCHECKED_CAST")
         val method = actionUnit.method() as Method<Params, *>
         val params = paramsConverter.convertValue(paramsRaw, actionUnit.paramsClass.java) ?: error { "Params are null" }
-        // TODO Use thread pool.
-        thread(name = "Worker-$method", start = true) {
+        workerThreadPool.execute {
             val result = method.doProcess(request, params)
             yield(result)
 
