@@ -1,8 +1,8 @@
 package suive.method
 
+import suive.model.Output
 import suive.model.Params
-import suive.model.Result
 
-abstract class Method<P : Params, out R : Result> {
-    abstract fun doProcess(params: P): R
+abstract class Method<P : Params, out R : Output.Result> {
+    abstract fun doProcess(request: Request, params: P): R
 }

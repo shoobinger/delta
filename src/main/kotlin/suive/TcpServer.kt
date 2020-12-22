@@ -4,13 +4,18 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.tinylog.kotlin.Logger
-import suive.model.NotificationMessage
-import suive.model.RequestMessage
-import suive.model.ResponseMessage
+import suive.method.Request
+import suive.model.transport.NotificationMessage
+import suive.model.Output
+import suive.model.transport.RequestMessage
+import suive.model.transport.ResponseMessage
 import java.net.ServerSocket
 import java.net.Socket
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.BlockingQueue
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.concurrent.thread
 
 
 class TcpServer(
@@ -34,28 +39,24 @@ class TcpServer(
             Logger.info { "Client connected." }
             state = "WAITING_FOR_COMMAND"
             val input = client.getInputStream()
-            val output = client.getOutputStream()
-            val clientHandle = ClientHandle(output)
-            processStream(input).forEach {
-                Logger.info { "Message received: $it" }
-                val message = jsonConverter.readValue<RequestMessage>(it) // TODO this may be a notification.
+            val clientHandle = ClientHandle(client.getOutputStream())
+            val messages: BlockingQueue<Output> = ArrayBlockingQueue(1000)
 
-                Application.dispatch(
-                    methodName = message.method,
-                    paramsRaw = message.params,
-                    handleResult = { output ->
-                        val responseMessage =
-                            jsonConverter.writeValueAsString(ResponseMessage.Success(message.id, output))
-                        clientHandle.send(responseMessage)
-                    },
-                    handleNotification = { method, params ->
-                        val responseMessage = jsonConverter.writeValueAsString(NotificationMessage(method, params))
-                        clientHandle.send(responseMessage)
-                    },
-                    handleError = {
-                        // TODO handle error
+            thread(start = true, name = "Sender") {
+                while (!Thread.interrupted()) {
+                    val response = when (val output = messages.take()) {
+                        is Output.Result -> ResponseMessage.Success(output.request.requestId, output)
+                        is Output.Notification<*> -> NotificationMessage(output)
                     }
-                )
+                    clientHandle.send(jsonConverter.writeValueAsString(response))
+                }
+            }
+
+            processStream(input).forEach { i ->
+                Logger.info { "Message received: $i" }
+                val message = jsonConverter.readValue<RequestMessage>(i) // TODO this may be a notification.
+
+                MethodDispatcher.dispatch(Request(message.id), message.method, message.params, messages::put)
             }
         }
     }

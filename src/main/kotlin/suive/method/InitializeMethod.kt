@@ -5,5 +5,6 @@ import suive.model.InitializeResult
 import suive.model.ServerCapabilities
 
 class InitializeMethod : Method<InitializeParams, InitializeResult>() {
-    override fun doProcess(params: InitializeParams) = InitializeResult(ServerCapabilities)
+    override fun doProcess(request: Request, params: InitializeParams) =
+        InitializeResult(request, ServerCapabilities)
 }

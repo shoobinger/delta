@@ -1,4 +1,4 @@
-package suive.model
+package suive.model.transport
 
 data class ResponseError(
     val code: Int,

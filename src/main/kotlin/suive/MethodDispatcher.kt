@@ -4,14 +4,16 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import suive.method.InitializeMethod
 import suive.method.Method
+import suive.method.Request
 import suive.model.InitializeParams
+import suive.model.Output
 import suive.model.Params
-import suive.model.Result
 import suive.service.DiagnosticService
 import suive.task.DiagnosticsTask
+import kotlin.concurrent.thread
 import kotlin.reflect.KClass
 
-object Application {
+object MethodDispatcher {
     private val diagnosticService = DiagnosticService()
     private val paramsConverter = ObjectMapper().registerModule(KotlinModule())
 
@@ -27,23 +29,25 @@ object Application {
     private val dispatchTable = actionUnits.associateBy { it.methodName }
 
     fun dispatch(
+        request: Request,
         methodName: String,
         paramsRaw: Map<*, *>,
-        handleResult: (Result) -> Unit,
-        handleNotification: (String, Params) -> Unit,
-        handleError: () -> Unit
+        yield: (Output) -> Unit
     ) {
         val actionUnit = requireNotNull(dispatchTable[methodName]) { "No such method" }
 
         @Suppress("UNCHECKED_CAST")
         val method = actionUnit.method() as Method<Params, *>
         val params = paramsConverter.convertValue(paramsRaw, actionUnit.paramsClass.java) ?: error { "Params are null" }
-        val result = method.doProcess(params)
-        handleResult(result)
+        // TODO Use thread pool.
+        thread(name = "Worker-$method", start = true) {
+            val result = method.doProcess(request, params)
+            yield(result)
 
-        actionUnit.notificationTasks().forEach { task ->
-            task.execute().forEach {
-                handleNotification(task.method(), it)
+            actionUnit.notificationTasks().forEach { task ->
+                task.execute().map { Output.Notification(task.method(), it) }.forEach {
+                    yield(it)
+                }
             }
         }
     }
