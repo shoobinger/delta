@@ -3,7 +3,7 @@ plugins {
     kotlin("jvm") version "1.4.10"
 }
 
-group = "suive"
+group = "suive.kotlinls.suive"
 version = "0.0.1"
 
 repositories {
