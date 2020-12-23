@@ -3,6 +3,7 @@ package suive
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 /**
@@ -17,6 +18,9 @@ class TestEditor {
 
     private BlockingMap<String, Map> responses = new BlockingMap()
     private BlockingMap<String, Map> notifications = new BlockingMap()
+
+    private int row = 1
+    private int col = 1
 
     TestEditor(int port) {
         this.port = port
@@ -77,5 +81,18 @@ class TestEditor {
         if (client != null && !client.isClosed()) {
             client.close()
         }
+    }
+
+    def moveCursor(int row, int col) {
+        this.row = row
+        this.col = col
+    }
+
+    def write(String file, String s) {
+        def path = workspacePath.resolve(file)
+        if (!Files.exists(path)) {
+            Files.createFile(path)
+        }
+        path << s
     }
 }

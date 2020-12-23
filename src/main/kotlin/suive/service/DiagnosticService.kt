@@ -10,7 +10,7 @@ class DiagnosticService {
         // TODO Call to the Kotlin compiler should be here.
         return listOf(
             Diagnostic(
-                range = Range(
+                range =Range(
                     start = Position(line = 3, character = 13),
                     end = Position(line = 3, character = 13)
                 ),
