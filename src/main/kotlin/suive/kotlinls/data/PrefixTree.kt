@@ -2,53 +2,69 @@ package suive.kotlinls.data
 
 import java.util.LinkedList
 
-class PrefixTree<V> {
+class PrefixTree {
 
-    private data class Node<V>(
+    private data class Node(
         val char: Char,
-        var values: List<V>,
-        val children: Array<Node<V>?>
+        var isTerminal: Boolean,
+        val children: Array<Node?>,
+        val parent: Node? = null
     )
 
-    private val rootNode: Node<V> = Node('@', emptyList(), arrayOfNulls(255))
+    private val rootNode: Node = Node('@', false, arrayOfNulls(255))
 
-    fun add(input: String, values: List<V>) {
+    fun add(vararg words: String) {
+        words.forEach(::add)
+    }
+
+    fun add(word: String) {
         var currentNode = rootNode
-        for (c in input.toLowerCase()) {
+        val capitalNodes = mutableSetOf<Node>()
+        for (c in word) {
             val child = currentNode.children[c.toInt()]
             currentNode = child ?: let {
-                val newNode = Node<V>(c, emptyList(), arrayOfNulls(255))
+                val newNode = Node(c, false, arrayOfNulls(255), currentNode)
                 currentNode.children[c.toInt()] = newNode
                 newNode
             }
+            if (c.isUpperCase()) {
+                capitalNodes += currentNode
+            }
         }
-        currentNode.values = values
+        currentNode.isTerminal = true
+
+        for (capNode in capitalNodes) {
+            // Go up the tree and link every node to this capital node.
+            var curNode = capNode
+        }
     }
 
-    fun query(prefix: String): List<V> {
-        val lowerPrefix = prefix.toLowerCase()
+    fun query(prefix: String): List<String> {
         var currentNode = rootNode
-        for (c in lowerPrefix) {
+        for (c in prefix) {
             currentNode = currentNode.children[c.toInt()] ?: return emptyList()
         }
 
-        val result = mutableSetOf<V>()
-        val nodesToSearch = LinkedList<Node<V>>()
-        nodesToSearch.push(currentNode)
+        val result = mutableListOf<String>()
+        val nodesToSearch = LinkedList<Pair<String, Node>>()
+        nodesToSearch.push(prefix to currentNode)
 
         while (nodesToSearch.isNotEmpty()) {
-            val (_, values, children) = nodesToSearch.pop()
-            result.addAll(values)
+            val (currentPrefix, node) = nodesToSearch.pop()
+            val nextPrefix = if (node == currentNode) currentPrefix else currentPrefix + node.char
+            if (node.isTerminal) {
+                result.add(nextPrefix)
+            }
 
-            for (i in (children.size - 1) downTo 0) {
-                val child = children[i]
+            for (i in (node.children.size - 1) downTo 0) {
+                val child = node.children[i]
                 if (child != null) {
-                    nodesToSearch.push(child)
+                    nodesToSearch.push(nextPrefix to child)
                 }
             }
         }
 
-        return result.toList()
+        return result
     }
 
     fun delete(w: String) {
