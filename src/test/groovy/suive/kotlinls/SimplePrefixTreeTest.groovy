@@ -3,7 +3,7 @@ package suive.kotlinls
 import org.junit.jupiter.api.Test
 import suive.kotlinls.data.PrefixTree
 
-class PrefixTreeTest {
+class SimplePrefixTreeTest {
 
     @Test
     void "should query by prefix"() {
@@ -34,7 +34,33 @@ class PrefixTreeTest {
     }
 
     @Test
-    void "should be able to delete entries"() {
+    void "should query using abbreviations"() {
+        def tree = new PrefixTree<String>()
+        tree.add("LogStream", [])
+        tree.add("LongStream", [])
+        tree.add("LongStreamTest", [])
 
+        assert tree.query("Lst").sort() == ["LogStream", "LongStream", "LongStreamTest"]
+        assert tree.query("LT").sort() == ["LongStreamTest"]
+        assert tree.query("LTest").sort() == ["LongStreamTest"]
+        assert tree.query("LTet").sort() == []
+        assert tree.query("Lst").sort() == ["LogStream", "LongStream", "LongStreamTest"]
+        assert tree.query("Lont").sort() == ["LongStreamTest"]
+        assert tree.query("Lonts").sort() == ["LongStreamTest"]
+        assert tree.query("LonStrTe").sort() == ["LongStreamTest"]
+    }
+
+    @Test
+    void "should query by substring"() {
+        def tree = new PrefixTree<String>()
+        tree.add("LogStream", [])
+        tree.add("LongStream", [])
+        tree.add("LongStreamTest", [])
+
+        assert tree.query("tream").sort() == ["LogStream", "LongStream", "LongStreamTest"]
+    }
+
+    @Test
+    void "should be able to delete entries"() {
     }
 }

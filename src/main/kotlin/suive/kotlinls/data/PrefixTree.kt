@@ -12,9 +12,9 @@ class PrefixTree<V> {
 
     private val rootNode: Node<V> = Node('@', emptyList(), arrayOfNulls(255))
 
-    fun add(word: String, values: List<V>) {
+    fun add(input: String, values: List<V>) {
         var currentNode = rootNode
-        for (c in word.toLowerCase()) {
+        for (c in input.toLowerCase()) {
             val child = currentNode.children[c.toInt()]
             currentNode = child ?: let {
                 val newNode = Node<V>(c, emptyList(), arrayOfNulls(255))
