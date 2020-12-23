@@ -1,17 +1,34 @@
 package suive.kotlinls.data
 
 import java.util.LinkedList
+import java.util.concurrent.atomic.AtomicInteger
 
 class PrefixTree {
 
     private data class Node(
+        val id: Int,
         val char: Char,
         var isTerminal: Boolean,
         val children: Array<Node?>,
-        val parent: Node? = null
-    )
+        val parent: Node? = null,
+        val nextCapitals: MutableSet<Node> = HashSet()
+    ) {
+        override fun equals(other: Any?): Boolean {
+            val o = other as? Node ?: return false
+            return o.id == id
+        }
 
-    private val rootNode: Node = Node('@', false, arrayOfNulls(255))
+        override fun hashCode(): Int {
+            return id.hashCode()
+        }
+
+        override fun toString(): String {
+            return char.toString()
+        }
+    }
+
+    private val idCounter = AtomicInteger(0)
+    private val rootNode: Node = Node(idCounter.getAndIncrement(), '@', false, arrayOfNulls(255))
 
     fun add(vararg words: String) {
         words.forEach(::add)
@@ -23,7 +40,7 @@ class PrefixTree {
         for (c in word) {
             val child = currentNode.children[c.toInt()]
             currentNode = child ?: let {
-                val newNode = Node(c, false, arrayOfNulls(255), currentNode)
+                val newNode = Node(idCounter.getAndIncrement(), c, false, arrayOfNulls(255), currentNode)
                 currentNode.children[c.toInt()] = newNode
                 newNode
             }
@@ -35,7 +52,11 @@ class PrefixTree {
 
         for (capNode in capitalNodes) {
             // Go up the tree and link every node to this capital node.
-            var curNode = capNode
+            var curNode = capNode.parent
+            while (curNode != null) {
+                curNode.nextCapitals += capNode
+                curNode = curNode.parent
+            }
         }
     }
 
@@ -56,11 +77,11 @@ class PrefixTree {
                 result.add(nextPrefix)
             }
 
-            for (i in (node.children.size - 1) downTo 0) {
-                val child = node.children[i]
-                if (child != null) {
-                    nodesToSearch.push(nextPrefix to child)
-                }
+            for (child in node.children.filterNotNull()) {
+                nodesToSearch.push(nextPrefix to child)
+            }
+            for (nextCapital in node.nextCapitals) {
+                nodesToSearch.push(nextPrefix to nextCapital)
             }
         }
 
