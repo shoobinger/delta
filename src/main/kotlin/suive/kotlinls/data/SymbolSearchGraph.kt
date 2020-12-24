@@ -3,7 +3,7 @@ package suive.kotlinls.data
 import java.util.LinkedList
 import java.util.concurrent.atomic.AtomicInteger
 
-class SymbolGraph {
+class SymbolSearchGraph {
 
     private data class Node(
         val id: Int,
@@ -59,7 +59,7 @@ class SymbolGraph {
         }
     }
 
-    fun query(prefix: String): List<String> {
+    fun search(term: String): List<String> {
         val result = mutableListOf<String>()
         val nodesToSearch = LinkedList<Pair<Int, Node>>()
         nodesToSearch.push(0 to rootNode)
@@ -67,16 +67,16 @@ class SymbolGraph {
         while (nodesToSearch.isNotEmpty()) {
             val (curIndex, node) = nodesToSearch.pop()
 
-            if (node.isTerminal) {
-                result.add(buildWord(node))
-            }
-
-            val nextNodes = if (curIndex < prefix.length) {
+            val nextNodes = if (curIndex < term.length) {
                 // Allow jump to capital letters.
-                 node.next[prefix[curIndex]] ?: emptyList()
+                node.next[term[curIndex]] ?: emptyList()
             } else {
+                if (node.isTerminal) {
+                    result.add(buildWord(node))
+                }
+
                 // Go only to direct descendants.
-                node.next.values.mapNotNull { n -> n.find { it.parent == node }} // TODO store link to a direct child
+                node.next.values.mapNotNull { n -> n.find { it.parent == node } } // TODO store link to a direct child
             }
             for (child in nextNodes) {
                 nodesToSearch.push(curIndex + 1 to child)
