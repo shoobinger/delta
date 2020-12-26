@@ -9,7 +9,7 @@ import suive.kotlinls.model.InitializeParams
 import suive.kotlinls.model.Output
 import suive.kotlinls.model.Params
 import suive.kotlinls.service.DiagnosticService
-import suive.kotlinls.service.SimpleIndexingService
+import suive.kotlinls.service.SymbolSearchIndexingService
 import suive.kotlinls.task.DiagnosticsTask
 import suive.kotlinls.task.IndexingTask
 import suive.kotlinls.task.NotificationTask
@@ -19,7 +19,7 @@ import kotlin.reflect.KClass
 
 object MethodDispatcher {
     private val diagnosticService = DiagnosticService()
-    private val indexingService = SimpleIndexingService()
+    private val indexingService = SymbolSearchIndexingService()
     private val paramsConverter = ObjectMapper().registerModule(KotlinModule())
 
     private val actionUnits = listOf<ActionUnit<out Params, out Method<*, *>, out KClass<out Params>>>(

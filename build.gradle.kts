@@ -8,6 +8,7 @@ version = "0.0.1"
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 dependencies {
@@ -24,6 +25,13 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-core:2.12.0")
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.12.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.0")
+
+    // Kotlin Compiler.
+    implementation("org.jetbrains.kotlin:kotlin-compiler:1.4.21")
+
+    // Maven.
+    implementation("org.apache.maven:maven-core:3.0.4")
+    implementation("com.jcabi:jcabi-aether:0.10.1")
 
     // Groovy.
     testImplementation("org.codehaus.groovy:groovy-all:3.0.7")

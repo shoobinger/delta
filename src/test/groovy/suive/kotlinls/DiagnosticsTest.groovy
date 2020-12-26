@@ -20,7 +20,7 @@ class DiagnosticsTest extends LanguageServerTest {
 
         testEditor.initialize(workspaceRoot)
 
-        def diagnosticNotification  = testEditor.getNotification("textDocument/publishDiagnostics")
+        def diagnosticNotification = testEditor.getNotification("textDocument/publishDiagnostics")
 //        assert diagnosticNotification.params.uri == testClass.toAbsolutePath().toString()
         assert diagnosticNotification.params.diagnostics.size == 1
         def diagnostic = diagnosticNotification.params.diagnostics.first()

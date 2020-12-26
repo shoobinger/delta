@@ -2,26 +2,31 @@ package suive.kotlinls
 
 import org.junit.jupiter.api.Test
 
+import java.nio.file.Files
+
 class CompletionTest extends LanguageServerTest {
 
     @Test
-    void "should receive completion for java lang classes"() {
-        def workspaceRoot = createWorkspace()
-        testEditor.initialize(workspaceRoot)
-        testEditor.write("TestClass.kt", """
+    void "should receive completions"() {
+        def workspaceRoot = createWorkspace("test-projects/maven")
+        def testClass = Files.createFile(
+                workspaceRoot.resolve("src/main/kotlin/suive/kotlinls/testproject/TestClass.kt"))
+        testClass << """
+            package suive.kotlinls.testproject
+            
             class TestClass {
                 fun testMethod() {
-                    
+                    val string = Opt
                 }
             }
-        """.stripIndent().trim())
-        testEditor.moveCursor(3, 9) // To the method body.
-        testEditor.write("TestClass.kt", "S")
+        """.stripIndent().trim()
+
         def response = testEditor.request("textDocument/completion", [
                 textDocument: [uri: workspaceRoot.resolve("TestClass.kt").toString()],
-                position    : [line: 2, character: 9]
+                position    : [line: 4, character: 27]
         ])
         assert response.isIncomplete == false
-        assert response.items.contains("String")
+        assert response.items.contains("Option<T>") // From io.vavr
+        assert response.items.contains("Optional<T>") // From java.util
     }
 }

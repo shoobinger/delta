@@ -1,8 +1,8 @@
 package suive.kotlinls.task
 
-import suive.kotlinls.service.SimpleIndexingService
+import suive.kotlinls.service.SymbolSearchIndexingService
 
-class IndexingTask(indexingService: SimpleIndexingService) : Task<Unit> {
+class IndexingTask(indexingService: SymbolSearchIndexingService) : Task<Unit> {
     override fun execute() {
         TODO("Not yet implemented")
     }

@@ -5,26 +5,21 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.tinylog.kotlin.Logger
 import suive.kotlinls.method.Request
-import suive.kotlinls.model.transport.NotificationMessage
 import suive.kotlinls.model.Output
+import suive.kotlinls.model.transport.NotificationMessage
 import suive.kotlinls.model.transport.RequestMessage
 import suive.kotlinls.model.transport.ResponseMessage
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import kotlin.concurrent.thread
-
 
 class TcpServer(
     private val port: Int
 ) {
     private lateinit var serverSocket: ServerSocket
     private lateinit var client: Socket
-
-    val worker: ExecutorService = Executors.newFixedThreadPool(1)
 
     var state: String = "NOT_STARTED"
 
