@@ -8,7 +8,7 @@ class CompletionTest extends LanguageServerTest {
 
     @Test
     void "should receive completions"() {
-        def workspaceRoot = createWorkspace("test-projects/maven")
+        def workspaceRoot = createWorkspace("/test-projects/maven")
         def testClass = Files.createFile(
                 workspaceRoot.resolve("src/main/kotlin/suive/kotlinls/testproject/TestClass.kt"))
         testClass << """
@@ -20,9 +20,10 @@ class CompletionTest extends LanguageServerTest {
                 }
             }
         """.stripIndent().trim()
+        testEditor.initialize(workspaceRoot)
 
         def response = testEditor.request("textDocument/completion", [
-                textDocument: [uri: workspaceRoot.resolve("TestClass.kt").toString()],
+                textDocument: [uri: testClass.toString()],
                 position    : [line: 4, character: 27]
         ])
         assert response.isIncomplete == false

@@ -18,7 +18,7 @@ import java.nio.file.Paths
 
 class MavenClasspathCollector {
 
-    fun collect(pom: Path) {
+    fun collect(pom: Path): List<Path> {
         val mavenReader = MavenXpp3Reader()
         val reader = FileReader(pom.toFile())
 
@@ -38,11 +38,11 @@ class MavenClasspathCollector {
         )
         val aether = Aether(project, Paths.get(System.getProperty("user.home"), ".m2/repository").toFile())
 
-        project.dependencies.flatMap { dep ->
+        return project.dependencies.flatMap { dep ->
             aether.resolve(
                 DefaultArtifact(dep.groupId, dep.artifactId, dep.classifier, dep.type, dep.version),
                 JavaScopes.COMPILE
-            )
+            ).map { it.file.toPath() }
         }
     }
 }

@@ -43,6 +43,7 @@ class TcpServer(
                         is Output.Result -> ResponseMessage.Success(output.request.requestId, output)
                         is Output.Notification<*> -> NotificationMessage(output)
                     }
+                    // Use kotlinx.serialization
                     clientHandle.send(jsonConverter.writeValueAsString(response))
                 }
             }

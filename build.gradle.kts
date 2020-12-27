@@ -1,6 +1,7 @@
 plugins {
     groovy
     kotlin("jvm") version "1.4.10"
+    idea
 }
 
 group = "suive.kotlinls.suive"
@@ -52,4 +53,11 @@ tasks.named<Test>("test") {
 
 tasks.withType<GroovyCompile>().configureEach {
     options.isIncremental = true
+}
+
+idea {
+    module {
+        isDownloadJavadoc = true
+        isDownloadSources = true
+    }
 }

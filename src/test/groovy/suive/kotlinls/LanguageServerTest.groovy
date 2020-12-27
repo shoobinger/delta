@@ -4,13 +4,12 @@ import groovy.io.FileType
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.Timeout
 
 import java.nio.file.Files
 import java.nio.file.Paths
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Timeout(2L)
+//@Timeout(2L)
 abstract class LanguageServerTest {
 
     protected KotlinLS languageServer
@@ -34,12 +33,12 @@ abstract class LanguageServerTest {
         languageServer.stopServer()
     }
 
-    protected static def createWorkspace(String contents = null) {
+    protected static def createWorkspace(String resource = null) {
         def root = Files.createTempDirectory("kotlin-ls-test-workspace")
         root.toFile().deleteOnExit()
 
-        if (contents != null) {
-            copyDirectory(Paths.get(LanguageServerTest.class.getResource(contents).toURI()).toFile(), root.toFile())
+        if (resource != null) {
+            copyDirectory(Paths.get(LanguageServerTest.class.getResource(resource).toURI()).toFile(), root.toFile())
         }
         root
     }
