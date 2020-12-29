@@ -1,7 +1,9 @@
 package suive.kotlinls
 
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import org.tinylog.kotlin.Logger
 import suive.kotlinls.method.CompletionMethod
 import suive.kotlinls.method.InitializeMethod
 import suive.kotlinls.method.Method
@@ -19,7 +21,7 @@ import suive.kotlinls.task.DiagnosticsTask
 import suive.kotlinls.task.IndexingTask
 import suive.kotlinls.task.NotificationTask
 import suive.kotlinls.task.UpdateClasspathTask
-import suive.kotlinls.util.NamedThreadFactory
+import suive.kotlinls.util.WorkerThreadFactory
 import java.util.concurrent.Executors
 import kotlin.reflect.KClass
 
@@ -29,7 +31,10 @@ object MethodDispatcher {
     private val compilerService = CompilerService()
     private val diagnosticService = DiagnosticService(compilerService)
     private val completionService = CompletionService(compilerService)
-    private val paramsConverter = ObjectMapper().registerModule(KotlinModule())
+    private val paramsConverter = ObjectMapper().apply {
+        registerModule(KotlinModule())
+        configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+    }
 
     private val actionUnits = listOf<ActionUnit<*, out Method<*, *>, out KClass<out Params>>>(
         ActionUnit(
@@ -54,7 +59,7 @@ object MethodDispatcher {
 
     private val dispatchTable = actionUnits.associateBy { it.methodName }
 
-    private val workerThreadPool = Executors.newCachedThreadPool(NamedThreadFactory("Worker"))
+    private val workerThreadPool = Executors.newCachedThreadPool(WorkerThreadFactory())
 
     fun dispatch(
         request: Request,
@@ -72,6 +77,7 @@ object MethodDispatcher {
             yield(result)
 
             actionUnit.getTasks(params).forEach { task ->
+                Logger.debug { "Executing $task." }
                 if (task is NotificationTask<*>) {
                     task.execute().map { Output.Notification(task.method(), it) }.forEach {
                         yield(it)

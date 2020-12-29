@@ -13,5 +13,7 @@ class KotlinLS {
 }
 
 fun main() {
-    KotlinLS().startServer(8500)
+//    KotlinLS().startServer(8500)
+//    Kotlin
+    StdStreamServer().start()
 }

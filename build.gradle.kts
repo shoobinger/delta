@@ -2,6 +2,7 @@ plugins {
     groovy
     kotlin("jvm") version "1.4.10"
     idea
+    application
 }
 
 group = "suive.kotlinls.suive"
@@ -60,4 +61,21 @@ idea {
         isDownloadJavadoc = true
         isDownloadSources = true
     }
+}
+
+application {
+    mainClass.set("suive.kotlinls.KotlinLSKt")
+}
+
+val startScripts = tasks.withType<CreateStartScripts>().getByName("startScripts")
+
+val debugArgs = "-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n,quiet=y"
+//val logArgs = "-Dtinylog.configuration=$buildDir/resources/main/tinylog.properties"
+
+tasks.withType<CreateStartScripts>().configureEach {
+    applicationName = startScripts.applicationName
+    mainClassName = startScripts.mainClassName
+    outputDir = buildDir.resolve("bin")
+    classpath = startScripts.classpath
+    defaultJvmOpts = mutableListOf(debugArgs)
 }
