@@ -3,6 +3,7 @@ package suive.kotlinls.util
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
+import org.tinylog.kotlin.Logger
 import suive.kotlinls.model.Diagnostic
 import suive.kotlinls.model.DiagnosticSeverity
 import suive.kotlinls.model.Position
@@ -16,6 +17,7 @@ class DiagnosticMessageCollector : MessageCollector {
     }
 
     override fun report(severity: CompilerMessageSeverity, message: String, location: CompilerMessageSourceLocation?) {
+        Logger.debug(message)
         val diagnosticSeverity = toDiagnosticSeverity(severity)
         if (diagnosticSeverity != null && location != null) {
             diagnostics += location.path to

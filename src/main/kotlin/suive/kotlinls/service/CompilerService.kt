@@ -4,6 +4,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
+import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
@@ -18,9 +19,11 @@ import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
 import org.jetbrains.kotlin.idea.KotlinLanguage
+import org.jetbrains.kotlin.incremental.ICReporter
 import org.jetbrains.kotlin.incremental.makeIncrementally
 import org.jetbrains.kotlin.metadata.jvm.deserialization.JvmProtoBufUtil
 import org.tinylog.kotlin.Logger
+import java.io.File
 import java.nio.file.Path
 
 class CompilerService {
@@ -83,7 +86,32 @@ class CompilerService {
             moduleName = "test"
             noReflect = true
         }
+        Logger.debug { "Compiler arg destination: ${args.destination}" }
+        val icReporter = object: ICReporter {
+            override fun report(message: () -> String) {
+                Logger.tag("Kotlin Compiler").debug(message)
+            }
 
-        makeIncrementally(rootPath.resolve(CACHES_DIR_NAME).toFile(), listOf(srcPath.toFile()), args, messageCollector)
+            override fun reportCompileIteration(
+                incremental: Boolean,
+                sourceFiles: Collection<File>,
+                exitCode: ExitCode
+            ) {
+            }
+
+            override fun reportMarkDirty(affectedFiles: Iterable<File>, reason: String) {
+            }
+
+            override fun reportMarkDirtyClass(affectedFiles: Iterable<File>, classFqName: String) {
+            }
+
+            override fun reportMarkDirtyMember(affectedFiles: Iterable<File>, scope: String, name: String) {
+            }
+
+            override fun reportVerbose(message: () -> String) {
+            }
+        }
+
+        makeIncrementally(rootPath.resolve(CACHES_DIR_NAME).toFile(), listOf(srcPath.toFile()), args, messageCollector, icReporter)
     }
 }
