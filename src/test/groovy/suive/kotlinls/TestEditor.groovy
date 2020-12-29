@@ -6,6 +6,7 @@ import suive.kotlinls.BlockingMap
 
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 
 /**
  * Test code editor that functions like an LSP client.
@@ -22,6 +23,8 @@ class TestEditor {
 
     private int row = 1
     private int col = 1
+
+    private final int GET_NOTIFICATION_TIMEOUT_SEC = 120
 
     TestEditor(int port) {
         this.port = port
@@ -54,7 +57,7 @@ class TestEditor {
     }
 
     Map getNotification(String method) {
-        notifications.get(method) as Map
+        notifications.get(method, GET_NOTIFICATION_TIMEOUT_SEC, TimeUnit.SECONDS) as Map
     }
 
     protected def request(String method, Object params) {

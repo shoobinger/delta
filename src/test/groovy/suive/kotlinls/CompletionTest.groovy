@@ -13,13 +13,13 @@ class CompletionTest extends LanguageServerTest {
                 workspaceRoot.resolve("src/main/kotlin/suive/kotlinls/testproject/TestClass.kt"))
         testClass << """
             package suive.kotlinls.testproject
-            
+
             class TestClass {
                 fun testMethod() {
                     val string = Opt
                 }
             }
-        """.stripIndent().trim()
+            """.stripIndent().trim()
         testEditor.initialize(workspaceRoot)
 
         def response = testEditor.request("textDocument/completion", [

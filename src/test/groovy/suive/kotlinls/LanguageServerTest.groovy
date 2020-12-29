@@ -35,7 +35,7 @@ abstract class LanguageServerTest {
 
     protected static def createWorkspace(String resource = null) {
         def root = Files.createTempDirectory("kotlin-ls-test-workspace")
-        root.toFile().deleteOnExit()
+//        root.toFile().deleteOnExit()
 
         if (resource != null) {
             copyDirectory(Paths.get(LanguageServerTest.class.getResource(resource).toURI()).toFile(), root.toFile())

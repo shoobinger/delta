@@ -4,6 +4,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
+import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
@@ -17,11 +18,16 @@ import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
 import org.jetbrains.kotlin.idea.KotlinLanguage
+import org.jetbrains.kotlin.incremental.makeIncrementally
 import org.jetbrains.kotlin.metadata.jvm.deserialization.JvmProtoBufUtil
 import org.tinylog.kotlin.Logger
 import java.nio.file.Path
 
 class CompilerService {
+    companion object {
+        const val CLASSES_DIR_NAME = "classes"
+        const val CACHES_DIR_NAME = "cache"
+    }
 
     private val compilerEnvironment = KotlinCoreEnvironment.createForProduction(
         parentDisposable = Disposer.newDisposable(), // TODO what is Disposable
@@ -69,5 +75,15 @@ class CompilerService {
     fun parseFile(text: String): PsiFile {
         val psiFileFactory = PsiFileFactory.getInstance(compilerEnvironment.project)
         return psiFileFactory.createFileFromText(KotlinLanguage.INSTANCE, text)
+    }
+
+    fun compile(rootPath: Path, srcPath: Path, messageCollector: MessageCollector) {
+        val args = K2JVMCompilerArguments().apply {
+            destination = rootPath.resolve(CLASSES_DIR_NAME).toAbsolutePath().toString()
+            moduleName = "test"
+            noReflect = true
+        }
+
+        makeIncrementally(rootPath.resolve(CACHES_DIR_NAME).toFile(), listOf(srcPath.toFile()), args, messageCollector)
     }
 }

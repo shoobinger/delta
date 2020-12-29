@@ -24,22 +24,22 @@ import java.util.concurrent.Executors
 import kotlin.reflect.KClass
 
 object MethodDispatcher {
-    private val diagnosticService = DiagnosticService()
     private val indexingService = SymbolSearchIndexingService()
     private val mavenClasspathCollector = MavenClasspathCollector()
     private val compilerService = CompilerService()
+    private val diagnosticService = DiagnosticService(compilerService)
     private val completionService = CompletionService(compilerService)
     private val paramsConverter = ObjectMapper().registerModule(KotlinModule())
 
-    private val actionUnits = listOf<ActionUnit<out Params, out Method<*, *>, out KClass<out Params>>>(
+    private val actionUnits = listOf<ActionUnit<*, out Method<*, *>, out KClass<out Params>>>(
         ActionUnit(
             methodName = "initialize",
             paramsClass = InitializeParams::class,
             method = { InitializeMethod() },
-            tasks = {
+            tasks = { params ->
                 listOf(
                     UpdateClasspathTask(mavenClasspathCollector, compilerService),
-                    DiagnosticsTask(diagnosticService),
+                    DiagnosticsTask(compilerService, requireNotNull(params.rootUri)),
                     IndexingTask(indexingService)
                 )
             }
@@ -71,7 +71,7 @@ object MethodDispatcher {
             val result = method.doProcess(request, params)
             yield(result)
 
-            actionUnit.tasks().forEach { task ->
+            actionUnit.getTasks(params).forEach { task ->
                 if (task is NotificationTask<*>) {
                     task.execute().map { Output.Notification(task.method(), it) }.forEach {
                         yield(it)

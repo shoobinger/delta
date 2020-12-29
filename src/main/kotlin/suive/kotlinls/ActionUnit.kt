@@ -9,5 +9,9 @@ class ActionUnit<P : Params, K : Method<P, *>, PK : KClass<out P>>(
     val methodName: String,
     val paramsClass: PK,
     val method: () -> K,
-    val tasks: () -> List<Task<*>>
-)
+    val tasks: (P) -> List<Task<*>>
+) {
+    fun getTasks(p: Any): List<Task<*>> {
+        return tasks(p as P) // TODO
+    }
+}

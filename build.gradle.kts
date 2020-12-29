@@ -32,7 +32,7 @@ dependencies {
 
     // Maven.
     implementation("org.apache.maven:maven-core:3.0.4")
-    implementation("com.jcabi:jcabi-aether:0.10.1")
+    implementation("com.jcabi:jcabi-aether:0.10.1") // TODO this dependency is very bloated
 
     // Groovy.
     testImplementation("org.codehaus.groovy:groovy-all:3.0.7")
