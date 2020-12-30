@@ -77,5 +77,5 @@ tasks.withType<CreateStartScripts>().configureEach {
     mainClassName = startScripts.mainClassName
     outputDir = buildDir.resolve("bin")
     classpath = startScripts.classpath
-    defaultJvmOpts = mutableListOf(debugArgs)
+//    defaultJvmOpts = mutableListOf(debugArgs)
 }

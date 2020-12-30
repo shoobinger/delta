@@ -7,16 +7,10 @@ class ClientHandle(
     private val outputStream: OutputStream
 ) {
     fun send(responseMessage: String) {
-        val message = """
-            Content-Length: ${responseMessage.length}
-            
-            $responseMessage""".trimIndent().trim()
+        val message = "Content-Length: ${responseMessage.length}\r\n\r\n$responseMessage"
         Logger.info { "Sending message to client: $message" }
-        outputStream.use {
-            it.write(
+        outputStream.write(
                 message.toByteArray()
             )
-            it.flush()
-        }
     }
 }

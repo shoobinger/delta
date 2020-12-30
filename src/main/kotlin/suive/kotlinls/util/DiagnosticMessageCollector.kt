@@ -23,8 +23,8 @@ class DiagnosticMessageCollector : MessageCollector {
             diagnostics += location.path to
                 Diagnostic(
                     range = Range(
-                        start = Position(location.line, location.column),
-                        end = Position(location.lineEnd, location.columnEnd)
+                        start = Position(location.line - 1, location.column - 1),
+                        end = Position(location.lineEnd - 1, location.columnEnd - 1)
                     ),
                     severity = diagnosticSeverity.num,
                     message = message

@@ -73,6 +73,7 @@ object MethodDispatcher {
         val method = actionUnit.method() as Method<Params, *>
         val params = paramsConverter.convertValue(paramsRaw, actionUnit.paramsClass.java) ?: error { "Params are null" }
         workerThreadPool.execute {
+            Logger.info { "Executing $method" }
             val result = method.doProcess(request, params)
             yield(result)
 
