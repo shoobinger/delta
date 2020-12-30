@@ -48,9 +48,18 @@ class TcpServer(
                 }
             }
 
-            processStream(input).forEach { i ->
+            for (i in processStream(input)) {
                 Logger.info { "Message received: $i" }
                 val message = jsonConverter.readValue<RequestMessage>(i) // TODO this may be a notification.
+
+                if (message.method == "exit") {
+                    break
+                }
+
+                if (message.id == null) {
+                    // Notifications are not yet supported.
+                    continue
+                }
 
                 MethodDispatcher.dispatch(Request(message.id), message.method, message.params, messages::put)
             }

@@ -7,9 +7,11 @@ import org.tinylog.kotlin.Logger
 import suive.kotlinls.method.CompletionMethod
 import suive.kotlinls.method.InitializeMethod
 import suive.kotlinls.method.Method
+import suive.kotlinls.method.NoOpMethod
 import suive.kotlinls.method.Request
 import suive.kotlinls.model.CompletionParams
 import suive.kotlinls.model.InitializeParams
+import suive.kotlinls.model.NoParams
 import suive.kotlinls.model.Output
 import suive.kotlinls.model.Params
 import suive.kotlinls.service.CompilerService
@@ -26,6 +28,8 @@ import java.util.concurrent.Executors
 import kotlin.reflect.KClass
 
 object MethodDispatcher {
+    private const val EXIT = "exit"
+
     private val indexingService = SymbolSearchIndexingService()
     private val mavenClasspathCollector = MavenClasspathCollector()
     private val compilerService = CompilerService()
@@ -50,10 +54,14 @@ object MethodDispatcher {
             }
         ),
         ActionUnit(
+            methodName = "shutdown",
+            paramsClass = NoParams::class,
+            method = { NoOpMethod() },
+        ),
+        ActionUnit(
             methodName = "textDocument/completion",
             paramsClass = CompletionParams::class,
-            method = { CompletionMethod(completionService) },
-            tasks = { emptyList() }
+            method = { CompletionMethod(completionService) }
         )
     )
 
@@ -64,14 +72,17 @@ object MethodDispatcher {
     fun dispatch(
         request: Request,
         methodName: String,
-        paramsRaw: Map<*, *>,
+        paramsRaw: Map<*, *>?,
         yield: (Output) -> Unit
     ) {
         val actionUnit = requireNotNull(dispatchTable[methodName]) { "No such method" }
 
         @Suppress("UNCHECKED_CAST")
         val method = actionUnit.method() as Method<Params, *>
-        val params = paramsConverter.convertValue(paramsRaw, actionUnit.paramsClass.java) ?: error { "Params are null" }
+        val params = if (paramsRaw == null)
+            NoParams
+        else
+            paramsConverter.convertValue(paramsRaw, actionUnit.paramsClass.java) ?: error { "Params are null" }
         workerThreadPool.execute {
             Logger.info { "Executing $method" }
             val result = method.doProcess(request, params)
