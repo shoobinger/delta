@@ -70,8 +70,8 @@ object MethodDispatcher {
             paramsClass = DidChangeTextDocumentParams::class,
             tasks = { params ->
                 listOf(
-                    DocumentSyncTask(workspace, params)
-//                    DiagnosticsTask(compilerService, params.textDocument.uri)
+                    DocumentSyncTask(workspace, params),
+                    DiagnosticsTask(compilerService, workspace, workspace.externalRoot.toUri().toString())
                 )
             }
         )

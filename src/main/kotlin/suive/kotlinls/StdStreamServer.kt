@@ -55,13 +55,8 @@ class StdStreamServer {
                 break
             }
 
-            if (message.id == null) {
-                // Notifications are not yet supported.
-                continue
-            }
-
             try {
-                MethodDispatcher.dispatch(Request(message.id), message.method, message.params, messages::put)
+                MethodDispatcher.dispatch(Request(message.id ?: -1), message.method, message.params, messages::put)
             } catch (e: Exception) {
                 Logger.error(e) { "Error in dispatcher" }
             }

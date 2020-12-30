@@ -68,6 +68,10 @@ class TestEditor {
         getResponse(messageId)
     }
 
+    protected def sendNotification(String method, Object params) {
+        send(method, params)
+    }
+
     protected Integer send(String method, Object params) {
         def id = messageId.getAndIncrement()
         def message = JsonOutput.toJson([

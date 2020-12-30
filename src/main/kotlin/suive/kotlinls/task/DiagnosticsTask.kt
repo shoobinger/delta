@@ -16,7 +16,7 @@ class DiagnosticsTask(
 ) : NotificationTask<PublishDiagnosticsParams> {
     override fun method() = "textDocument/publishDiagnostics"
     override fun execute(): List<PublishDiagnosticsParams> {
-        val sourceUri = "$rootUri/src"
+        val sourceUri = Paths.get(URI(rootUri)).resolve("src").toUri().toString() // TODO simplify
         val messageCollector = DiagnosticMessageCollector(workspace)
         Logger.debug { "Compiler starting ($sourceUri)." }
         compilerService.compile(rootUri, sourceUri, messageCollector)

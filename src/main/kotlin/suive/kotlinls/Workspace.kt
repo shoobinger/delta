@@ -56,14 +56,13 @@ class Workspace() {
                             end.character
                         else l.length - 1
 
-                        l.replaceRange(from, to, change.text.lines()[i])
+                        l.replaceRange(from, to, change.text.lines()[i - start.line])
                     }
 
                     acc.add(newLine)
                     acc
                 }
             }
-            Logger.debug { "New lines: ${newLines.joinToString { "\n" }}" }
             Files.write(internalPath, newLines)
             Logger.debug { "New file content: ${internalPath.toFile().readText()}" }
         }
