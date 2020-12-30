@@ -4,12 +4,16 @@ import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.tinylog.kotlin.Logger
+import suive.kotlinls.Workspace
 import suive.kotlinls.model.Diagnostic
 import suive.kotlinls.model.DiagnosticSeverity
 import suive.kotlinls.model.Position
 import suive.kotlinls.model.Range
+import java.nio.file.Paths
 
-class DiagnosticMessageCollector : MessageCollector {
+class DiagnosticMessageCollector(
+    private val workspace: Workspace
+) : MessageCollector {
     val diagnostics = mutableListOf<Pair<String, Diagnostic>>()
 
     override fun clear() {
@@ -20,7 +24,7 @@ class DiagnosticMessageCollector : MessageCollector {
         Logger.debug(message)
         val diagnosticSeverity = toDiagnosticSeverity(severity)
         if (diagnosticSeverity != null && location != null) {
-            diagnostics += location.path to
+            diagnostics += workspace.toExternalUri(Paths.get(location.path)) to
                 Diagnostic(
                     range = Range(
                         start = Position(location.line - 1, location.column - 1),

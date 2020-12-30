@@ -29,11 +29,20 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.0")
 
     // Kotlin Compiler.
-    implementation("org.jetbrains.kotlin:kotlin-compiler:1.4.21")
+    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:1.4.21")
 
     // Maven.
     implementation("org.apache.maven:maven-core:3.0.4")
     implementation("com.jcabi:jcabi-aether:0.10.1") // TODO this dependency is very bloated
+
+    // In-memory FS.
+    implementation("com.google.jimfs:jimfs:1.1")
+
+    configurations.compile.get().exclude(mapOf("group" to "org.sonatype.sisu", "module" to "sisu-guava"))
+//    configurations.compile.get().exclude(mapOf("group" to "com.google.guava", "module" to "guava"))
+//    configurations.runtime.get().exclude(mapOf("group" to "org.sonatype.sisu", "module" to "sisu-guava"))
+//    configurations.runtime.get().exclude(mapOf("group" to "com.google.guava", "module" to "guava"))
+    implementation("com.google.guava:guava:23.0")
 
     // Groovy.
     testImplementation("org.codehaus.groovy:groovy-all:3.0.7")
@@ -45,6 +54,7 @@ dependencies {
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     kotlinOptions.freeCompilerArgs = listOf("-Xuse-experimental=kotlin.ExperimentalUnsignedTypes")
+    kotlinOptions.jvmTarget = "1.8"
 }
 
 tasks.named<Test>("test") {

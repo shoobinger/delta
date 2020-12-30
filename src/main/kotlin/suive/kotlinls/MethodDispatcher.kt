@@ -10,6 +10,7 @@ import suive.kotlinls.method.Method
 import suive.kotlinls.method.NoOpMethod
 import suive.kotlinls.method.Request
 import suive.kotlinls.model.CompletionParams
+import suive.kotlinls.model.DidChangeTextDocumentParams
 import suive.kotlinls.model.InitializeParams
 import suive.kotlinls.model.NoParams
 import suive.kotlinls.model.Output
@@ -20,19 +21,20 @@ import suive.kotlinls.service.DiagnosticService
 import suive.kotlinls.service.MavenClasspathCollector
 import suive.kotlinls.service.SymbolSearchIndexingService
 import suive.kotlinls.task.DiagnosticsTask
+import suive.kotlinls.task.DocumentSyncTask
 import suive.kotlinls.task.IndexingTask
 import suive.kotlinls.task.NotificationTask
 import suive.kotlinls.task.UpdateClasspathTask
 import suive.kotlinls.util.WorkerThreadFactory
 import java.util.concurrent.Executors
+import kotlin.properties.Delegates
 import kotlin.reflect.KClass
 
 object MethodDispatcher {
-    private const val EXIT = "exit"
-
+    private val workspace = Workspace()
     private val indexingService = SymbolSearchIndexingService()
     private val mavenClasspathCollector = MavenClasspathCollector()
-    private val compilerService = CompilerService()
+    private val compilerService = CompilerService(workspace)
     private val diagnosticService = DiagnosticService(compilerService)
     private val completionService = CompletionService(compilerService)
     private val paramsConverter = ObjectMapper().apply {
@@ -44,11 +46,11 @@ object MethodDispatcher {
         ActionUnit(
             methodName = "initialize",
             paramsClass = InitializeParams::class,
-            method = { InitializeMethod() },
+            method = { InitializeMethod(workspace) },
             tasks = { params ->
                 listOf(
                     UpdateClasspathTask(mavenClasspathCollector, compilerService),
-                    DiagnosticsTask(compilerService, requireNotNull(params.rootUri)),
+                    DiagnosticsTask(compilerService, workspace, requireNotNull(params.rootUri)),
                     IndexingTask(indexingService)
                 )
             }
@@ -62,6 +64,16 @@ object MethodDispatcher {
             methodName = "textDocument/completion",
             paramsClass = CompletionParams::class,
             method = { CompletionMethod(completionService) }
+        ),
+        ActionUnit(
+            methodName = "textDocument/didChange",
+            paramsClass = DidChangeTextDocumentParams::class,
+            tasks = { params ->
+                listOf(
+                    DocumentSyncTask(workspace, params)
+//                    DiagnosticsTask(compilerService, params.textDocument.uri)
+                )
+            }
         )
     )
 
@@ -77,16 +89,19 @@ object MethodDispatcher {
     ) {
         val actionUnit = requireNotNull(dispatchTable[methodName]) { "No such method" }
 
-        @Suppress("UNCHECKED_CAST")
-        val method = actionUnit.method() as Method<Params, *>
+        val method = actionUnit.method
+
         val params = if (paramsRaw == null)
             NoParams
         else
             paramsConverter.convertValue(paramsRaw, actionUnit.paramsClass.java) ?: error { "Params are null" }
         workerThreadPool.execute {
-            Logger.info { "Executing $method" }
-            val result = method.doProcess(request, params)
-            yield(result)
+            if (method != null) {
+                Logger.info { "Executing $method" }
+                @Suppress("UNCHECKED_CAST")
+                val result = (method() as Method<Params, *>).doProcess(request, params)
+                yield(result)
+            }
 
             actionUnit.getTasks(params).forEach { task ->
                 Logger.debug { "Executing $task." }

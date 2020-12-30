@@ -9,8 +9,8 @@ class UpdateClasspathTask(
     private val compilerService: CompilerService
 ) : Task<Unit> {
     override fun execute() {
-        val classpath =
-            mavenClasspathCollector.collect(Paths.get("/home/ivan/projects/kotlin-ls/src/test/resources/test-projects/maven/pom.xml"))
-        compilerService.updateClasspath(classpath)
+//        val classpath =
+//            mavenClasspathCollector.collect(Paths.get("/home/ivan/projects/kotlin-ls/src/test/resources/test-projects/maven/pom.xml"))
+//        compilerService.updateClasspath(classpath)
     }
 }

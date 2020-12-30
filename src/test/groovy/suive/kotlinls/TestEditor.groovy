@@ -7,6 +7,7 @@ import suive.kotlinls.BlockingMap
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Test code editor that functions like an LSP client.
@@ -18,13 +19,15 @@ class TestEditor {
     private Path workspacePath
     private int port
 
-    private BlockingMap<String, Map> responses = new BlockingMap()
+    private BlockingMap<Integer, Map> responses = new BlockingMap()
     private BlockingMap<String, Map> notifications = new BlockingMap()
 
     private int row = 1
     private int col = 1
 
     private final int GET_NOTIFICATION_TIMEOUT_SEC = 120
+
+    private AtomicInteger messageId = new AtomicInteger(0)
 
     TestEditor(int port) {
         this.port = port
@@ -42,17 +45,17 @@ class TestEditor {
                 if (message.method != null) {
                     notifications.set(message.method as String, message)
                 } else if (message.id != null) {
-                    responses.set(message.id as String, message)
+                    responses.set(message.id as Integer, message)
                 } else {
                     throw new IllegalStateException("Unknown message received")
                 }
             }
         }).start()
 
-        request("initialize", [processId: null, rootUri: workspacePath.toAbsolutePath().toString()])
+        request("initialize", [processId: null, rootUri: "file://${workspacePath.toAbsolutePath()}"])
     }
 
-    Map getResponse(String messageId) {
+    Map getResponse(Integer messageId) {
         responses.get(messageId) as Map
     }
 
@@ -65,11 +68,11 @@ class TestEditor {
         getResponse(messageId)
     }
 
-    protected String send(String method, Object params) {
-        def messageId = UUID.randomUUID().toString()
+    protected Integer send(String method, Object params) {
+        def id = messageId.getAndIncrement()
         def message = JsonOutput.toJson([
                 jsonrpc: "2.0",
-                id     : messageId,
+                id     : id,
                 method : method,
                 params : params
         ])
@@ -78,7 +81,7 @@ class TestEditor {
              Content-Length: ${message.size()}\r\n\r\n$message
         """.stripIndent().trim()
 
-        messageId
+        id
     }
 
     def stopSession() {

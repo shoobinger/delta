@@ -1,4 +1,6 @@
 package suive.kotlinls.model
 
 object ClientCapabilities
-object ServerCapabilities
+data class ServerCapabilities (
+    val textDocumentSync: Int = 2
+)

@@ -8,7 +8,7 @@ import kotlin.reflect.KClass
 class ActionUnit<P : Params, K : Method<P, *>, PK : KClass<out P>>(
     val methodName: String,
     val paramsClass: PK,
-    val method: () -> K,
+    val method: (() -> K)? = null,
     val tasks: (P) -> List<Task<*>> = { emptyList() }
 ) {
     fun getTasks(p: Any): List<Task<*>> {
