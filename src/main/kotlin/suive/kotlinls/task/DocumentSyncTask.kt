@@ -8,6 +8,8 @@ class DocumentSyncTask(
     private val params: DidChangeTextDocumentParams
 ) : Task<Unit> {
     override fun execute() {
-        workspace.updateFileContents(params.textDocument.uri, params.contentChanges)
+        params.contentChanges.forEach { change ->
+            workspace.enqueueChange(params.textDocument.uri, change)
+        }
     }
 }

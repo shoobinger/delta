@@ -28,9 +28,7 @@ import java.io.File
 import java.nio.file.Path
 import kotlin.system.measureTimeMillis
 
-class CompilerService(
-    private val workspace: Workspace
-) {
+class CompilerService {
     companion object {
         const val CLASSES_DIR_NAME = "classes"
         const val CACHES_DIR_NAME = "cache"
@@ -84,49 +82,5 @@ class CompilerService(
     fun parseFile(text: String): PsiFile {
         val psiFileFactory = PsiFileFactory.getInstance(compilerEnvironment.project)
         return psiFileFactory.createFileFromText(KotlinLanguage.INSTANCE, text)
-    }
-
-    val icReporter = object : ICReporterBase() {
-        override fun report(message: () -> String) {
-            Logger.tag("Kotlin Compiler").debug(message)
-        }
-
-        override fun reportCompileIteration(
-            incremental: Boolean,
-            sourceFiles: Collection<File>,
-            exitCode: ExitCode
-        ) {
-            Logger.tag("Kotlin Compiler")
-                .debug { "Inc $incremental, source files $sourceFiles, exit code $exitCode" }
-        }
-
-        override fun reportVerbose(message: () -> String) {
-            Logger.tag("Kotlin Compiler").debug(message)
-        }
-    }
-
-    fun compile(rootUri: String, srcUri: String, messageCollector: MessageCollector) {
-        val args = K2JVMCompilerArguments().apply {
-            destination = workspace.toInternalPath(rootUri).resolve(CLASSES_DIR_NAME).toAbsolutePath().toString()
-            moduleName = "test"
-            noReflect = true
-        }
-
-        val internalRootPath = workspace.toInternalPath(rootUri)
-        val internalSrcPath = workspace.toInternalPath(srcUri)
-        synchronized(lock) {
-            Logger.debug { "Compiler starting: ${args.destination}" }
-
-            val compileTime = measureTimeMillis {
-                makeIncrementally(
-                    internalRootPath.resolve(CACHES_DIR_NAME).toFile(),
-                    listOf(internalSrcPath.toFile()),
-                    args,
-                    messageCollector,
-                    icReporter
-                )
-            }
-            Logger.debug { "Compilation finished in ${compileTime}ms" }
-        }
     }
 }

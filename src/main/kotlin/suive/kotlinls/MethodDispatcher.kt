@@ -19,6 +19,7 @@ import suive.kotlinls.service.CompilerService
 import suive.kotlinls.service.CompletionService
 import suive.kotlinls.service.DiagnosticService
 import suive.kotlinls.service.MavenClasspathCollector
+import suive.kotlinls.service.SenderService
 import suive.kotlinls.service.SymbolSearchIndexingService
 import suive.kotlinls.task.DiagnosticsTask
 import suive.kotlinls.task.DocumentSyncTask
@@ -26,17 +27,22 @@ import suive.kotlinls.task.IndexingTask
 import suive.kotlinls.task.NotificationTask
 import suive.kotlinls.task.UpdateClasspathTask
 import suive.kotlinls.util.WorkerThreadFactory
+import java.io.OutputStream
 import java.util.concurrent.Executors
-import kotlin.properties.Delegates
 import kotlin.reflect.KClass
 
-object MethodDispatcher {
-    private val workspace = Workspace()
+class MethodDispatcher(
+    outputStream: OutputStream,
+    jsonConverter: ObjectMapper
+) {
     private val indexingService = SymbolSearchIndexingService()
     private val mavenClasspathCollector = MavenClasspathCollector()
-    private val compilerService = CompilerService(workspace)
+    private val compilerService = CompilerService()
     private val diagnosticService = DiagnosticService(compilerService)
     private val completionService = CompletionService(compilerService)
+    private val senderService = SenderService(outputStream, jsonConverter)
+    private val workspace = Workspace(senderService, compilerService)
+
     private val paramsConverter = ObjectMapper().apply {
         registerModule(KotlinModule())
         configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -71,7 +77,7 @@ object MethodDispatcher {
             tasks = { params ->
                 listOf(
                     DocumentSyncTask(workspace, params),
-                    DiagnosticsTask(compilerService, workspace, workspace.externalRoot.toUri().toString())
+//                    DiagnosticsTask(compilerService, workspace, workspace.externalRoot.toUri().toString())
                 )
             }
         )
@@ -84,8 +90,7 @@ object MethodDispatcher {
     fun dispatch(
         request: Request,
         methodName: String,
-        paramsRaw: Map<*, *>?,
-        yield: (Output) -> Unit
+        paramsRaw: Map<*, *>?
     ) {
         val actionUnit = requireNotNull(dispatchTable[methodName]) { "No such method" }
 
@@ -100,14 +105,14 @@ object MethodDispatcher {
                 Logger.info { "Executing $method" }
                 @Suppress("UNCHECKED_CAST")
                 val result = (method() as Method<Params, *>).doProcess(request, params)
-                yield(result)
+                senderService.send(result)
             }
 
             actionUnit.getTasks(params).forEach { task ->
                 Logger.debug { "Executing $task." }
                 if (task is NotificationTask<*>) {
                     task.execute().map { Output.Notification(task.method(), it) }.forEach {
-                        yield(it)
+                        senderService.send(it)
                     }
                 } else {
                     task.execute()

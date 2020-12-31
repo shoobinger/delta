@@ -18,7 +18,8 @@ class DiagnosticsTask(
     override fun execute(): List<PublishDiagnosticsParams> {
         val sourceUri = Paths.get(URI(rootUri)).resolve("src").toUri().toString() // TODO simplify
         val messageCollector = DiagnosticMessageCollector(workspace)
-        compilerService.compile(rootUri, sourceUri, messageCollector)
+        workspace.triggerDiagnostics()
+//        compilerService.compile(rootUri, sourceUri, messageCollector)
 
         return if (messageCollector.diagnostics.isEmpty()) emptyList() else
             messageCollector.diagnostics.groupBy({ it.first }, { it.second }).map { (t, u) ->

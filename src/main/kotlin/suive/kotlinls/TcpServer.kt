@@ -34,34 +34,22 @@ class TcpServer(
             Logger.info { "Client connected." }
             state = "WAITING_FOR_COMMAND"
             val input = client.getInputStream()
-            val clientHandle = ClientHandle(client.getOutputStream())
-            val messages: BlockingQueue<Output> = ArrayBlockingQueue(1000)
+            val methodDispatcher = MethodDispatcher(client.getOutputStream(), jsonConverter)
 
-            thread(start = true, name = "Sender") {
-                while (!Thread.interrupted()) {
-                    val response = when (val output = messages.take()) {
-                        is Output.Result -> ResponseMessage.Success(output.request.requestId, output)
-                        is Output.Notification<*> -> NotificationMessage(output)
-                    }
-                    // Use kotlinx.serialization
-                    clientHandle.send(jsonConverter.writeValueAsString(response))
-                }
-            }
-
+            Logger.info { "Started server (reading from stdin)" }
             for (i in processStream(input)) {
-                Logger.info { "Message received: $i" }
                 val message = jsonConverter.readValue<RequestMessage>(i) // TODO this may be a notification.
+                Logger.info { "Message received: $message" }
 
                 if (message.method == "exit") {
                     break
                 }
 
-                if (message.id == null) {
-                    // Notifications are not yet supported.
-                    continue
+                try {
+                    methodDispatcher.dispatch(Request(message.id ?: -1), message.method, message.params)
+                } catch (e: Exception) {
+                    Logger.error(e) { "Error in dispatcher" }
                 }
-
-                MethodDispatcher.dispatch(Request(message.id), message.method, message.params, messages::put)
             }
         }
     }

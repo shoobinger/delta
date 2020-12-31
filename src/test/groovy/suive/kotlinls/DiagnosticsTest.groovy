@@ -17,7 +17,7 @@ class DiagnosticsTest extends LanguageServerTest {
                     invalidSymbol
                 }
             }
-        """.stripIndent().trim()
+        """.stripIndent(true).trim()
 
         testEditor.initialize(workspaceRoot)
 
@@ -27,14 +27,14 @@ class DiagnosticsTest extends LanguageServerTest {
         def diagnostic = diagnosticNotification.params.diagnostics.first()
         assert diagnostic.message == "Unresolved reference: invalidSymbol"
         assert diagnostic.range.start.line == 2
-        assert diagnostic.range.start.character == 12
+        assert diagnostic.range.start.character == 8
         assert diagnostic.range.end.line == 2
-        assert diagnostic.range.end.character == 25
+        assert diagnostic.range.end.character == 21
 
         // Add 's' to the end.
         testEditor.sendNotification("textDocument/didChange",
                 [textDocument  : [uri: testClass.toUri().toString()],
-                 contentChanges: [[range: [start: [line: 2, character: 25], end: [line: 2, character: 25]], text: "s"]]])
+                 contentChanges: [[range: [start: [line: 2, character: 21], end: [line: 2, character: 21]], text: "s"]]])
 
         diagnosticNotification = testEditor.getNotification("textDocument/publishDiagnostics")
         assert diagnosticNotification.params.uri == testClass.toUri().toString()
@@ -42,13 +42,12 @@ class DiagnosticsTest extends LanguageServerTest {
         diagnostic = diagnosticNotification.params.diagnostics.first()
         assert diagnostic.message == "Unresolved reference: invalidSymbols"
         assert diagnostic.range.start.line == 2
-        assert diagnostic.range.start.character == 12
+        assert diagnostic.range.start.character == 8
         assert diagnostic.range.end.line == 2
-        assert diagnostic.range.end.character == 26
+        assert diagnostic.range.end.character == 22
     }
 
     @Test
-//    @Disabled
     void "fast typing test"() {
         def workspaceRoot = createWorkspace("/test-projects/maven")
         def testClass = Files.createFile(
@@ -57,21 +56,32 @@ class DiagnosticsTest extends LanguageServerTest {
             package suive
             
             fun main() {
+                invalidSymbol000
             }
         """.stripIndent(true).trim()
 
         testEditor.initialize(workspaceRoot)
 
-        // Remove newline from the function body.
-        testEditor.sendNotification("textDocument/didChange",
-                [textDocument  : [uri: testClass.toUri().toString()],
-                 contentChanges: [[range: [start: [line: 2, character: 12], end: [line: 3, character: 0]], text: ""]]])
+        for (i in 0..100) {
+            testEditor.sendNotification("textDocument/didChange",
+                    [textDocument  : [uri: testClass.toUri().toString()],
+                     contentChanges: [[range: [start: [line: 2, character: 12], end: [line: 3, character: 20]], text: ""]]])
+            Thread.sleep 50
 
-        // Add newline to the function body.
-        testEditor.sendNotification("textDocument/didChange",
-                [textDocument  : [uri: testClass.toUri().toString()],
-                 contentChanges: [[range: [start: [line: 2, character: 12], end: [line: 2, character: 12]], text: "\n"]]])
+            testEditor.sendNotification("textDocument/didChange",
+                    [textDocument  : [uri: testClass.toUri().toString()],
+                     contentChanges: [[range: [start: [line: 2, character: 12], end: [line: 2, character: 12]], text: "\n    invalidSymbol${i.toString().padLeft(3, '0')}"]]])
+            Thread.sleep 50
+        }
 
-        Thread.sleep(10000)
+        def diagnosticNotification = testEditor.getNotification("textDocument/publishDiagnostics")
+        assert diagnosticNotification.params.uri == testClass.toUri().toString()
+        assert diagnosticNotification.params.diagnostics.size == 1
+        def diagnostic = diagnosticNotification.params.diagnostics.first()
+        assert diagnostic.message == "Unresolved reference: invalidSymbol099"
+        assert diagnostic.range.start.line == 3
+        assert diagnostic.range.start.character == 4
+        assert diagnostic.range.end.line == 3
+        assert diagnostic.range.end.character == 17
     }
 }

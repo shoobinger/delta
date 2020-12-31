@@ -10,7 +10,12 @@ class BlockingMap<K, V> {
     private ConcurrentMap<K, BlockingQueue<V>> map = new ConcurrentHashMap()
 
     private BlockingQueue<V> getQueue(K key, boolean replace) {
-        return map.compute(key) { _, v -> if (v == null) new ArrayBlockingQueue(1) else v } as BlockingQueue<V>
+        return map.compute(key) { _, v -> if (v == null) new ArrayBlockingQueue(1) else {
+            def queue = v as BlockingQueue<V>
+            if (replace)
+                queue.clear()
+            queue
+        } } as BlockingQueue<V>
     }
 
     def set(K key, V value) {
