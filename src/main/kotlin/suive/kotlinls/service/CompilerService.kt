@@ -36,6 +36,8 @@ class CompilerService(
         const val CACHES_DIR_NAME = "cache"
     }
 
+    private val lock = Any()
+
     private val compilerEnvironment = KotlinCoreEnvironment.createForProduction(
         parentDisposable = Disposer.newDisposable(), // TODO what is Disposable
         configuration = CompilerConfiguration().apply {
@@ -109,19 +111,22 @@ class CompilerService(
             moduleName = "test"
             noReflect = true
         }
-        Logger.debug { "Compiler arg destination: ${args.destination}" }
 
         val internalRootPath = workspace.toInternalPath(rootUri)
         val internalSrcPath = workspace.toInternalPath(srcUri)
-        val compileTime = measureTimeMillis {
-            makeIncrementally(
-                internalRootPath.resolve(CACHES_DIR_NAME).toFile(),
-                listOf(internalSrcPath.toFile()),
-                args,
-                messageCollector,
-                icReporter
-            )
+        synchronized(lock) {
+            Logger.debug { "Compiler starting: ${args.destination}" }
+
+            val compileTime = measureTimeMillis {
+                makeIncrementally(
+                    internalRootPath.resolve(CACHES_DIR_NAME).toFile(),
+                    listOf(internalSrcPath.toFile()),
+                    args,
+                    messageCollector,
+                    icReporter
+                )
+            }
+            Logger.debug { "Compilation finished in ${compileTime}ms" }
         }
-        Logger.debug { "Compilation finished in ${compileTime}ms" }
     }
 }

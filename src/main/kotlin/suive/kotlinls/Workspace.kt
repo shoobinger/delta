@@ -1,21 +1,21 @@
 package suive.kotlinls
 
-import com.google.common.jimfs.Jimfs
-import org.jetbrains.kotlin.konan.file.use
 import org.tinylog.kotlin.Logger
 import suive.kotlinls.model.TextDocumentContentChangeEvent
 import java.net.URI
-import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
-class Workspace() {
+class Workspace {
     lateinit var externalRoot: Path
     val internalRoot = Paths.get("/tmp", "kotlinls-workspace-${UUID.randomUUID()}/").apply {
         Files.createDirectories(this)
     }
+
+    val locks = ConcurrentHashMap<Path, Any>()
 
     fun initialize(externalRoot: Path) {
         this.externalRoot = externalRoot
@@ -40,31 +40,24 @@ class Workspace() {
     fun updateFileContents(uri: String, contentChanges: List<TextDocumentContentChangeEvent>) {
         val internalPath = toInternalPath(uri)
 
-        for (change in contentChanges) {
-            val start = change.range.start
-            val end = change.range.end
-            Logger.debug { "Old file content: ${internalPath.toFile().readText()}" }
-            val newLines = Files.lines(internalPath).use { lines ->
-                lines.iterator().asSequence().foldIndexed(mutableListOf<String>()) { i, acc, l ->
-                    val newLine = if (i < start.line || i > end.line) {
-                        l
-                    } else {
-                        val from = if (i == start.line)
-                            start.character
-                        else 0
-                        val to = if (i == end.line)
-                            end.character
-                        else l.length - 1
-
-                        l.replaceRange(from, to, change.text.lines()[i - start.line])
-                    }
-
-                    acc.add(newLine)
-                    acc
-                }
+        val lock = locks.getOrPut(internalPath) { Any() }
+        Logger.debug("Lock: $lock")
+        synchronized(lock) {
+            for (change in contentChanges) {
+                val oldContent = Files.readString(internalPath)
+                Logger.debug { "Old file content: [$oldContent]" }
+                val newContent = oldContent.replaceRange(
+                    getOffset(oldContent, change.range.start.line, change.range.start.character),
+                    getOffset(oldContent, change.range.end.line, change.range.end.character),
+                    change.text
+                )
+                Logger.debug { "New file content: [$newContent]" }
+                Files.writeString(internalPath, newContent)
             }
-            Files.write(internalPath, newLines)
-            Logger.debug { "New file content: ${internalPath.toFile().readText()}" }
         }
+    }
+
+    private fun getOffset(text: String, row: Int, col: Int): Int {
+        return text.lineSequence().take(row).fold(0) { acc, l -> acc + l.length + 1 /* 1 for newline */ } + col
     }
 }

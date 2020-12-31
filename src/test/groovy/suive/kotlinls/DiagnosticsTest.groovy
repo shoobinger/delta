@@ -45,6 +45,33 @@ class DiagnosticsTest extends LanguageServerTest {
         assert diagnostic.range.start.character == 12
         assert diagnostic.range.end.line == 2
         assert diagnostic.range.end.character == 26
+    }
 
+    @Test
+//    @Disabled
+    void "fast typing test"() {
+        def workspaceRoot = createWorkspace("/test-projects/maven")
+        def testClass = Files.createFile(
+                workspaceRoot.resolve("src/main/kotlin/suive/kotlinls/testproject/TestClass.kt"))
+        testClass << """
+            package suive
+            
+            fun main() {
+            }
+        """.stripIndent(true).trim()
+
+        testEditor.initialize(workspaceRoot)
+
+        // Remove newline from the function body.
+        testEditor.sendNotification("textDocument/didChange",
+                [textDocument  : [uri: testClass.toUri().toString()],
+                 contentChanges: [[range: [start: [line: 2, character: 12], end: [line: 3, character: 0]], text: ""]]])
+
+        // Add newline to the function body.
+        testEditor.sendNotification("textDocument/didChange",
+                [textDocument  : [uri: testClass.toUri().toString()],
+                 contentChanges: [[range: [start: [line: 2, character: 12], end: [line: 2, character: 12]], text: "\n"]]])
+
+        Thread.sleep(10000)
     }
 }

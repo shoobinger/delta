@@ -35,15 +35,6 @@ dependencies {
     implementation("org.apache.maven:maven-core:3.0.4")
     implementation("com.jcabi:jcabi-aether:0.10.1") // TODO this dependency is very bloated
 
-    // In-memory FS.
-    implementation("com.google.jimfs:jimfs:1.1")
-
-    configurations.compile.get().exclude(mapOf("group" to "org.sonatype.sisu", "module" to "sisu-guava"))
-//    configurations.compile.get().exclude(mapOf("group" to "com.google.guava", "module" to "guava"))
-//    configurations.runtime.get().exclude(mapOf("group" to "org.sonatype.sisu", "module" to "sisu-guava"))
-//    configurations.runtime.get().exclude(mapOf("group" to "com.google.guava", "module" to "guava"))
-    implementation("com.google.guava:guava:23.0")
-
     // Groovy.
     testImplementation("org.codehaus.groovy:groovy-all:3.0.7")
 
