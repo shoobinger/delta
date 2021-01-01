@@ -2,7 +2,6 @@ package suive.kotlinls
 
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
-import org.jetbrains.kotlin.com.intellij.openapi.progress.ProcessCanceledException
 import org.jetbrains.kotlin.incremental.ICReporterBase
 import org.jetbrains.kotlin.incremental.makeIncrementally
 import org.tinylog.kotlin.Logger
@@ -28,7 +27,7 @@ class Workspace(
     private val compilerService: CompilerService
 ) {
     lateinit var externalRoot: Path
-    val internalRoot = Paths.get("/tmp", "kotlinls-workspace-${UUID.randomUUID()}/").apply {
+    val internalRoot = Paths.get("/tmp", "kotlinls-workspace-${UUID.randomUUID()}").apply {
         Files.createDirectories(this)
     }
 
@@ -77,18 +76,23 @@ class Workspace(
         diagnosticSemaphore.release()
     }
 
+    val problematicFiles = mutableSetOf<String>()
     private val diagnosticSemaphore = Semaphore(0)
     private val diagnosticRunner = thread(start = true, name = "DiagnosticRunner") {
         while (true) {
             diagnosticSemaphore.acquireUninterruptibly()
             Logger.debug { "Compiling started....." }
             try {
-                val rootUri = internalRoot.toUri().toString()
 //                val sourceUri = internalRoot.resolve("src").toUri().toString() // TODO simplify
                 val messageCollector = DiagnosticMessageCollector(this)
 //                compilerService.compile(internalRoot.toUri().toString(), sourceUri, messageCollector)
+                val classpath = internalRoot.resolve(Paths.get("lib", "kotlin-stdlib-1.4.21.jar"))
+                    .toAbsolutePath().toString()
                 val args = K2JVMCompilerArguments().apply {
-                    destination = toInternalPath(rootUri).resolve(CompilerService.CLASSES_DIR_NAME).toAbsolutePath().toString()
+                    destination =
+                        internalRoot.resolve(CompilerService.CLASSES_DIR_NAME).toAbsolutePath().toString()
+                    this.classpath = classpath
+                    noStdlib = true
                     moduleName = "test"
                     noReflect = true
                 }
@@ -106,16 +110,24 @@ class Workspace(
                         icReporter
                     )
                 }
-                Logger.debug { "Compiling finished in ${compileTime}ms" }
-                val diagnostics = if (messageCollector.diagnostics.isEmpty()) emptyList() else
-                    messageCollector.diagnostics.groupBy({ it.first }, { it.second }).map { (t, u) ->
+                val diagnostics = if (messageCollector.diagnostics.isEmpty()) {
+                    // Compilation finished without errors.
+                    // Send empty diagnostics with previous files to clear messages in the client.
+                    problematicFiles.map { uri -> PublishDiagnosticsParams(uri, emptyList()) }.also {
+                        problematicFiles.clear()
+                    }
+                } else {
+                    val newDiagnostics = messageCollector.diagnostics.groupBy({ it.first }, { it.second }).map { (t, u) ->
                         PublishDiagnosticsParams(t, u)
                     }
+                    problematicFiles.addAll(newDiagnostics.map { it.uri })
+                    newDiagnostics
+                }
                 diagnostics.forEach {
                     senderService.send(Output.Notification("textDocument/publishDiagnostics", it))
                 }
-            } catch (e: ProcessCanceledException) {
-                Logger.debug { "Cancelling compilation" }
+            } catch (e: Exception) {
+                Logger.debug { "Compilation cancelled" }
             }
         }
     }

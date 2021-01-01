@@ -66,22 +66,57 @@ class DiagnosticsTest extends LanguageServerTest {
             testEditor.sendNotification("textDocument/didChange",
                     [textDocument  : [uri: testClass.toUri().toString()],
                      contentChanges: [[range: [start: [line: 2, character: 12], end: [line: 3, character: 20]], text: ""]]])
-            Thread.sleep 50
+            Thread.sleep 10
 
             testEditor.sendNotification("textDocument/didChange",
                     [textDocument  : [uri: testClass.toUri().toString()],
                      contentChanges: [[range: [start: [line: 2, character: 12], end: [line: 2, character: 12]], text: "\n    invalidSymbol${i.toString().padLeft(3, '0')}"]]])
-            Thread.sleep 50
+            Thread.sleep 10
         }
 
         def diagnosticNotification = testEditor.getNotification("textDocument/publishDiagnostics")
         assert diagnosticNotification.params.uri == testClass.toUri().toString()
         assert diagnosticNotification.params.diagnostics.size == 1
         def diagnostic = diagnosticNotification.params.diagnostics.first()
-        assert diagnostic.message == "Unresolved reference: invalidSymbol099"
+        assert diagnostic.message == "Unresolved reference: invalidSymbol100"
         assert diagnostic.range.start.line == 3
         assert diagnostic.range.start.character == 4
         assert diagnostic.range.end.line == 3
-        assert diagnostic.range.end.character == 17
+        assert diagnostic.range.end.character == 20
+    }
+
+    @Test
+    void "diagnostics are cleared after removing issue"() {
+        def workspaceRoot = createWorkspace("/test-projects/maven")
+        def testClass = Files.createFile(
+                workspaceRoot.resolve("src/main/kotlin/suive/kotlinls/testproject/TestClass.kt"))
+        testClass << """
+            class TestClass {
+                fun testMethod() {
+                    invalidSymbol
+                }
+            }
+        """.stripIndent(true).trim()
+
+        testEditor.initialize(workspaceRoot)
+
+        def diagnosticNotification = testEditor.getNotification("textDocument/publishDiagnostics")
+        assert diagnosticNotification.params.uri == testClass.toUri().toString()
+        assert diagnosticNotification.params.diagnostics.size == 1
+        def diagnostic = diagnosticNotification.params.diagnostics.first()
+        assert diagnostic.message == "Unresolved reference: invalidSymbol"
+        assert diagnostic.range.start.line == 2
+        assert diagnostic.range.start.character == 8
+        assert diagnostic.range.end.line == 2
+        assert diagnostic.range.end.character == 21
+
+        // Remove invalidSymbol.
+        testEditor.sendNotification("textDocument/didChange",
+                [textDocument  : [uri: testClass.toUri().toString()],
+                 contentChanges: [[range: [start: [line: 2, character: 8], end: [line: 2, character: 21]], text: ""]]])
+
+        diagnosticNotification = testEditor.getNotification("textDocument/publishDiagnostics")
+        assert diagnosticNotification.params.uri == testClass.toUri().toString()
+        assert diagnosticNotification.params.diagnostics.size == 0
     }
 }

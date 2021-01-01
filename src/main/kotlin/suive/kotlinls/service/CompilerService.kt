@@ -34,8 +34,6 @@ class CompilerService {
         const val CACHES_DIR_NAME = "cache"
     }
 
-    private val lock = Any()
-
     private val compilerEnvironment = KotlinCoreEnvironment.createForProduction(
         parentDisposable = Disposer.newDisposable(), // TODO what is Disposable
         configuration = CompilerConfiguration().apply {
@@ -67,10 +65,6 @@ class CompilerService {
                 override fun hasErrors() = false
 
             })
-//                add(ComponentRegistrar.PLUGIN_COMPONENT_REGISTRARS, ScriptingCompilerConfigurationComponentRegistrar())
-
-//                addJvmClasspathRoots(classPath.map { it.toFile() })
-//                addJavaSourceRoots(javaSourcePath.map { it.toFile() })
         },
         configFiles = EnvironmentConfigFiles.JVM_CONFIG_FILES
     )
