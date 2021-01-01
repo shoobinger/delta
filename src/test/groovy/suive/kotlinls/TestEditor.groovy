@@ -2,7 +2,6 @@ package suive.kotlinls
 
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import suive.kotlinls.BlockingMap
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -40,7 +39,7 @@ class TestEditor {
         inputStream = client.inputStream
 
         new Thread({
-            TcpKt.processStream(inputStream).each {
+            ProtocolKt.processStream(inputStream).each {
                 def message = new JsonSlurper().parseText(it) as Map
                 if (message.method != null) {
                     notifications.set(message.method as String, message)

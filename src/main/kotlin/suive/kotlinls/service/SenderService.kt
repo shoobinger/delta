@@ -25,8 +25,12 @@ class SenderService(
                     is Output.Result -> ResponseMessage.Success(output.request.requestId, output)
                     is Output.Notification<*> -> NotificationMessage(output)
                 }
-                // Use kotlinx.serialization
-                this.send(jsonConverter.writeValueAsString(response))
+                // TODO Use kotlinx.serialization
+                val responseMessage = jsonConverter.writeValueAsString(response)
+
+                val message = "Content-Length: ${responseMessage.length}\r\n\r\n$responseMessage"
+                Logger.info { "Sending message to client: $message" }
+                outputStream.write(message.toByteArray())
             } catch (e: InterruptedException) {
                 break
             }
@@ -35,13 +39,5 @@ class SenderService(
 
     fun send(output: Output) {
         messages.offer(output)
-    }
-
-    private fun send(responseMessage: String) {
-        val message = "Content-Length: ${responseMessage.length}\r\n\r\n$responseMessage"
-        Logger.info { "Sending message to client: $message" }
-        outputStream.write(
-            message.toByteArray()
-        )
     }
 }

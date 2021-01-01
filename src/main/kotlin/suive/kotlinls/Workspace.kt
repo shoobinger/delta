@@ -8,7 +8,6 @@ import org.tinylog.kotlin.Logger
 import suive.kotlinls.model.Output
 import suive.kotlinls.model.PublishDiagnosticsParams
 import suive.kotlinls.model.TextDocumentContentChangeEvent
-import suive.kotlinls.service.CompilerService
 import suive.kotlinls.service.SenderService
 import suive.kotlinls.util.DiagnosticMessageCollector
 import java.io.File
@@ -23,8 +22,7 @@ import kotlin.concurrent.thread
 import kotlin.system.measureTimeMillis
 
 class Workspace(
-    private val senderService: SenderService,
-    private val compilerService: CompilerService
+    private val senderService: SenderService
 ) {
     companion object {
         const val DIAGNOSTIC_DELAY = 100L
@@ -85,9 +83,8 @@ class Workspace(
         }
     }
 
-    val problematicFiles = mutableSetOf<String>()
+    private val problematicFiles = mutableSetOf<String>()
     private val diagnosticSemaphore = Semaphore(0)
-    private var lastRun = 0L
     @Volatile
     private var diagnosticInProgress = false
     private val diagnosticRunner = thread(start = true, name = "DiagnosticRunner") {
@@ -96,14 +93,12 @@ class Workspace(
             try {
                 diagnosticInProgress = true
                 Thread.sleep(DIAGNOSTIC_DELAY)
-                Logger.debug { "Compiling started (last was ${System.currentTimeMillis() - lastRun}ms)....." }
-                lastRun = System.currentTimeMillis()
                 val messageCollector = DiagnosticMessageCollector(this)
                 val classpath = internalRoot.resolve(Paths.get("lib", "kotlin-stdlib-1.4.21.jar"))
                     .toAbsolutePath().toString()
                 val args = K2JVMCompilerArguments().apply {
                     destination =
-                        internalRoot.resolve(CompilerService.CLASSES_DIR_NAME).toAbsolutePath().toString()
+                        internalRoot.resolve("classes").toAbsolutePath().toString()
                     this.classpath = classpath
                     noStdlib = true
                     moduleName = "test"
@@ -114,7 +109,7 @@ class Workspace(
 
                 measureTimeMillis {
                     makeIncrementally(
-                        internalRoot.resolve(CompilerService.CACHES_DIR_NAME).toFile(),
+                        internalRoot.resolve("cache").toFile(),
                         listOf(internalRoot.resolve("src").toFile()),
                         args,
                         messageCollector,
@@ -150,9 +145,7 @@ class Workspace(
         while (!Thread.interrupted()) {
             try {
                 val (uri, change) = editQueue.take()
-                if (diagnosticInProgress) {
-                    diagnosticRunner.interrupt()
-                }
+                cancelDiagnostics()
                 updateFileContents(uri, change)
                 startDiagnostics()
             } catch (e: InterruptedException) {
