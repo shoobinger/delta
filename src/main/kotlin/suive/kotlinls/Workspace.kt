@@ -26,6 +26,9 @@ class Workspace(
     private val senderService: SenderService,
     private val compilerService: CompilerService
 ) {
+    companion object {
+        const val DIAGNOSTIC_DELAY = 100L
+    }
     lateinit var externalRoot: Path
     val internalRoot = Paths.get("/tmp", "kotlinls-workspace-${UUID.randomUUID()}").apply {
         Files.createDirectories(this)
@@ -72,20 +75,30 @@ class Workspace(
         }
     }
 
-    fun triggerDiagnostics() {
+    fun startDiagnostics() {
         diagnosticSemaphore.release()
+    }
+
+    fun cancelDiagnostics() {
+        if (diagnosticInProgress) {
+            diagnosticRunner.interrupt()
+        }
     }
 
     val problematicFiles = mutableSetOf<String>()
     private val diagnosticSemaphore = Semaphore(0)
+    private var lastRun = 0L
+    @Volatile
+    private var diagnosticInProgress = false
     private val diagnosticRunner = thread(start = true, name = "DiagnosticRunner") {
         while (true) {
             diagnosticSemaphore.acquireUninterruptibly()
-            Logger.debug { "Compiling started....." }
             try {
-//                val sourceUri = internalRoot.resolve("src").toUri().toString() // TODO simplify
+                diagnosticInProgress = true
+                Thread.sleep(DIAGNOSTIC_DELAY)
+                Logger.debug { "Compiling started (last was ${System.currentTimeMillis() - lastRun}ms)....." }
+                lastRun = System.currentTimeMillis()
                 val messageCollector = DiagnosticMessageCollector(this)
-//                compilerService.compile(internalRoot.toUri().toString(), sourceUri, messageCollector)
                 val classpath = internalRoot.resolve(Paths.get("lib", "kotlin-stdlib-1.4.21.jar"))
                     .toAbsolutePath().toString()
                 val args = K2JVMCompilerArguments().apply {
@@ -97,11 +110,9 @@ class Workspace(
                     noReflect = true
                 }
 
-//                val internalRootPath = workspace.toInternalPath(rootUri)
-//                val internalSrcPath = workspace.toInternalPath(srcUri)
                 Logger.debug { "Compiler starting: ${args.destination}" }
 
-                val compileTime = measureTimeMillis {
+                measureTimeMillis {
                     makeIncrementally(
                         internalRoot.resolve(CompilerService.CACHES_DIR_NAME).toFile(),
                         listOf(internalRoot.resolve("src").toFile()),
@@ -127,7 +138,9 @@ class Workspace(
                     senderService.send(Output.Notification("textDocument/publishDiagnostics", it))
                 }
             } catch (e: Exception) {
-                Logger.debug { "Compilation cancelled" }
+                Logger.debug(e) { "Compilation cancelled" }
+            } finally {
+                diagnosticInProgress = false
             }
         }
     }
@@ -137,9 +150,11 @@ class Workspace(
         while (!Thread.interrupted()) {
             try {
                 val (uri, change) = editQueue.take()
-                diagnosticRunner.interrupt()
+                if (diagnosticInProgress) {
+                    diagnosticRunner.interrupt()
+                }
                 updateFileContents(uri, change)
-                diagnosticSemaphore.release()
+                startDiagnostics()
             } catch (e: InterruptedException) {
                 break
             }
