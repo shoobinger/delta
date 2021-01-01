@@ -3,6 +3,9 @@ package suive.kotlinls
 import org.junit.jupiter.api.Test
 
 import java.nio.file.Files
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 class DiagnosticsTest extends LanguageServerTest {
 
@@ -111,12 +114,26 @@ class DiagnosticsTest extends LanguageServerTest {
         assert diagnostic.range.end.character == 21
 
         // Remove invalidSymbol.
-        testEditor.sendNotification("textDocument/didChange",
+        testEditor.sendNotification "textDocument/didChange",
                 [textDocument  : [uri: testClass.toUri().toString()],
-                 contentChanges: [[range: [start: [line: 2, character: 8], end: [line: 2, character: 21]], text: ""]]])
+                 contentChanges: [[range: [start: [line: 2, character: 8], end: [line: 2, character: 21]], text: ""]]]
 
         diagnosticNotification = testEditor.getNotification("textDocument/publishDiagnostics")
         assert diagnosticNotification.params.uri == testClass.toUri().toString()
         assert diagnosticNotification.params.diagnostics.size == 0
+
+        // Should not receive empty diagnostics.
+        // Remove method.
+        testEditor.sendNotification "textDocument/didChange",
+                [textDocument  : [uri: testClass.toUri().toString()],
+                 contentChanges: [[range: [start: [line: 1, character: 0], end: [line: 3, character: 5]], text: ""]]]
+        try {
+            def notification = CompletableFuture.supplyAsync {
+                testEditor.getNotification("textDocument/publishDiagnostics")
+            }.get(1, TimeUnit.SECONDS)
+            assert notification == null
+        } catch (TimeoutException ignored) {
+            // Test passed
+        }
     }
 }
