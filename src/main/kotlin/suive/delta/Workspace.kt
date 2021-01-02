@@ -3,6 +3,7 @@ package suive.delta
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.incremental.ICReporterBase
+import org.jetbrains.kotlin.incremental.classpathAsList
 import org.jetbrains.kotlin.incremental.makeIncrementally
 import org.tinylog.kotlin.Logger
 import suive.delta.model.Output
@@ -27,10 +28,14 @@ class Workspace(
     companion object {
         const val DIAGNOSTIC_DELAY = 100L
     }
+
     lateinit var externalRoot: Path
     val internalRoot = Paths.get("/tmp", "delta-workspace-${UUID.randomUUID()}").apply {
         Files.createDirectories(this)
     }
+
+    @Volatile
+    var classpath: List<File> = emptyList()
 
     fun initialize(externalRoot: Path) {
         this.externalRoot = externalRoot
@@ -79,12 +84,14 @@ class Workspace(
 
     fun cancelDiagnostics() {
         if (diagnosticInProgress) {
+            Logger.info { "Attempting to interrupt running diagnostics" }
             diagnosticRunner.interrupt()
         }
     }
 
     private val problematicFiles = mutableSetOf<String>()
     private val diagnosticSemaphore = Semaphore(0)
+
     @Volatile
     private var diagnosticInProgress = false
     private val diagnosticRunner = thread(start = true, name = "DiagnosticRunner") {
@@ -94,18 +101,17 @@ class Workspace(
                 diagnosticInProgress = true
                 Thread.sleep(DIAGNOSTIC_DELAY)
                 val messageCollector = DiagnosticMessageCollector(this)
-                val classpath = internalRoot.resolve(Paths.get("lib", "kotlin-stdlib-1.4.21.jar"))
-                    .toAbsolutePath().toString()
                 val args = K2JVMCompilerArguments().apply {
                     destination =
                         internalRoot.resolve("classes").toAbsolutePath().toString()
-                    this.classpath = classpath
+                    classpathAsList = this@Workspace.classpath
                     noStdlib = true
                     moduleName = "test"
                     noReflect = true
+                    jvmTarget = "1.8"
                 }
 
-                Logger.debug { "Compiler starting: ${args.destination}" }
+                Logger.debug { "Compiler starting. classpath: ${args.classpath}" }
 
                 measureTimeMillis {
                     makeIncrementally(
@@ -123,9 +129,10 @@ class Workspace(
                         problematicFiles.clear()
                     }
                 } else {
-                    val newDiagnostics = messageCollector.diagnostics.groupBy({ it.first }, { it.second }).map { (t, u) ->
-                        PublishDiagnosticsParams(t, u)
-                    }
+                    val newDiagnostics =
+                        messageCollector.diagnostics.groupBy({ it.first }, { it.second }).map { (t, u) ->
+                            PublishDiagnosticsParams(t, u)
+                        }
                     problematicFiles.addAll(newDiagnostics.map { it.uri })
                     newDiagnostics
                 }
@@ -174,5 +181,11 @@ class Workspace(
 
     fun enqueueChange(uri: String, change: TextDocumentContentChangeEvent) {
         editQueue.offer(DocumentEdit(uri, change))
+    }
+
+    fun updateClasspath(paths: List<Path>) {
+        classpath = paths.map { it.toFile() }
+        Logger.info { "Classpath updated, new classpath $classpath" }
+        startDiagnostics()
     }
 }

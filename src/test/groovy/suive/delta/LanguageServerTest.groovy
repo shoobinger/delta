@@ -29,12 +29,11 @@ abstract class LanguageServerTest {
     @AfterAll
     void shutdown() {
         testEditor.stopSession()
-        languageServer.stopServer()
+        languageServer.stop()
     }
 
     protected static def createWorkspace(String resource = null) {
-        def root = Files.createTempDirectory("kotlin-ls-test-workspace")
-//        root.toFile().deleteOnExit()
+        def root = Files.createTempDirectory("delta-test-workspace")
 
         if (resource != null) {
             copyDirectory(Paths.get(LanguageServerTest.class.getResource(resource).toURI()).toFile(), root.toFile())

@@ -118,6 +118,7 @@ class DiagnosticsTest extends LanguageServerTest {
                 [textDocument  : [uri: testClass.toUri().toString()],
                  contentChanges: [[range: [start: [line: 2, character: 8], end: [line: 2, character: 21]], text: ""]]]
 
+        // Empty diagnostics are received.
         diagnosticNotification = testEditor.getNotification("textDocument/publishDiagnostics")
         assert diagnosticNotification.params.uri == testClass.toUri().toString()
         assert diagnosticNotification.params.diagnostics.size == 0

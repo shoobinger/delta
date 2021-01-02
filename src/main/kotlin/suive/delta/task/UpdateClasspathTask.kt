@@ -1,13 +1,22 @@
 package suive.delta.task
 
+import org.tinylog.kotlin.Logger
+import suive.delta.Workspace
 import suive.delta.service.MavenClasspathCollector
+import java.nio.file.Files
 
 class UpdateClasspathTask(
-    private val mavenClasspathCollector: MavenClasspathCollector
+    private val mavenClasspathCollector: MavenClasspathCollector,
+    private val workspace: Workspace
 ) : Task<Unit> {
     override fun execute() {
-//        val classpath =
-//            mavenClasspathCollector.collect(Paths.get("/home/ivan/projects/kotlin-ls/src/test/resources/test-projects/maven/pom.xml"))
-//        workspace.updateClasspath(classpath)
+        val pom = workspace.externalRoot.resolve("pom.xml")
+        val classpath = if (Files.notExists(pom)) {
+            emptyList()
+        } else {
+            Logger.info { "Found pom.xml, resolving classpath" }
+            mavenClasspathCollector.collect(pom)
+        }
+        workspace.updateClasspath(classpath)
     }
 }

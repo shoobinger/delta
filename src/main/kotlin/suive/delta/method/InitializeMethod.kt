@@ -13,7 +13,7 @@ class InitializeMethod(private val workspace: Workspace) : Method<InitializePara
         if (params.rootUri != null) {
             Logger.info { "Initializing workspace ${params.rootUri}" }
             workspace.initialize(Paths.get(URI(params.rootUri)))
-            workspace.startDiagnostics()
+//            workspace.startDiagnostics()
         }
 
         return InitializeResult(request, ServerCapabilities())

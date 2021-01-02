@@ -58,8 +58,8 @@ class TestEditor {
         responses.get(messageId) as Map
     }
 
-    Map getNotification(String method) {
-        notifications.get(method, GET_NOTIFICATION_TIMEOUT_SEC, TimeUnit.SECONDS) as Map
+    Map getNotification(String method, def timeout = GET_NOTIFICATION_TIMEOUT_SEC) {
+        notifications.get(method, timeout, TimeUnit.SECONDS) as Map
     }
 
     protected def request(String method, Object params) {
@@ -105,4 +105,49 @@ class TestEditor {
         }
         path << s
     }
+
+    void editFile(Path path, String content) {
+        def oldContent = Files.readString(path)
+        def newContent = content.stripIndent(true).trim()
+        def minLength = Math.min(newContent.length(), oldContent.length())
+
+        def rangeStart = 0
+        def lineStart = 0
+        def charStart = 0
+        for (i in 0..<minLength) {
+            if (oldContent[i] == newContent[i]) {
+                rangeStart++
+                charStart++
+                if (oldContent[i] == '\n') {
+                    charStart = 0
+                    lineStart++
+                }
+            } else {
+                break
+            }
+        }
+
+        def rangeEnd = 0
+        def lineEnd = 0
+        def charEnd = 0
+        for (i in 0..<minLength) {
+            if (oldContent[oldContent.length() - i - 1] == newContent[newContent.length() - i - 1]) {
+                rangeEnd++
+                charEnd++
+                if (oldContent[oldContent.length() - i - 1] == '\n') {
+                    charEnd = 0
+                    lineEnd++
+                }
+            } else {
+                lineEnd = oldContent.readLines().size() - lineEnd - 1
+                charEnd = oldContent.readLines()[lineEnd].size() - charEnd
+                rangeEnd = oldContent.size() - rangeEnd
+                break
+            }
+        }
+
+        def text = oldContent.substring(rangeStart, rangeEnd)
+        print("a")
+    }
+
 }

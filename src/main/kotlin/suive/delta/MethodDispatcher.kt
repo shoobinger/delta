@@ -43,7 +43,7 @@ class MethodDispatcher(
             method = { InitializeMethod(workspace) },
             tasks = { params ->
                 listOf(
-                    UpdateClasspathTask(mavenClasspathCollector),
+                    UpdateClasspathTask(mavenClasspathCollector, workspace),
 //                    IndexingTask(indexingService)
                 )
             }
