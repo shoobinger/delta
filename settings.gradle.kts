@@ -1,2 +1,2 @@
-rootProject.name = "kotlin-ls"
+rootProject.name = "delta"
 enableFeaturePreview("GROOVY_COMPILATION_AVOIDANCE")

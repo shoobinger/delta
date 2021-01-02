@@ -5,7 +5,7 @@ plugins {
     application
 }
 
-group = "suive.kotlinls.suive"
+group = "suive.delta"
 version = "0.0.1"
 
 repositories {
@@ -41,8 +41,6 @@ dependencies {
     // JUnit.
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.6.0")
-
-    testImplementation("org.awaitility:awaitility:4.0.2")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
@@ -67,13 +65,12 @@ idea {
 }
 
 application {
-    mainClass.set("suive.kotlinls.KotlinLSKt")
+    mainClass.set("suive.delta.DeltaKt")
 }
 
 val startScripts = tasks.withType<CreateStartScripts>().getByName("startScripts")
 
 val debugArgs = "-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n,quiet=y"
-//val logArgs = "-Dtinylog.configuration=$buildDir/resources/main/tinylog.properties"
 
 tasks.withType<CreateStartScripts>().configureEach {
     applicationName = startScripts.applicationName

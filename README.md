@@ -1,9 +1,15 @@
-# Kotlin Language Server
+# Delta — Language Server for Kotlin
 
-## Desired features
+Delta is a Kotlin Language server (work-in-progress).
+Delta aims to be fast and helpful.
 
-### Completions
-1. Contextual variable name completion based on the global index
-   If SomeClass exists in the index, typing `som` should give the following completion `someClass: SomeClass`, although
-   this should apply only where applicable (after `val/var` or in the method variables)
-2. Auto-import after completing an item
+### Features.
+- Code diagnostics
+
+### Features to be implemented
+- Maven and Gradle integration
+- Parameters help
+- Local code completion (local variables, methods)
+- Global code completion (classes from classpath)
+- Auto-import
+- Code actions

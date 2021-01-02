@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>suive.kotlinls.testproject</groupId>
+    <groupId>suive.delta.testproject</groupId>
     <artifactId>test-project-maven</artifactId>
     <version>0.0.1</version>
     <name>test-project-maven</name>
@@ -12,7 +12,7 @@
         <kotlin.version>1.4.21</kotlin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
-        <main.class>suive.kotlinls.testproject.TestProgramKt</main.class>
+        <main.class>suive.delta.testproject.TestProgramKt</main.class>
     </properties>
     <dependencies>
         <dependency>
