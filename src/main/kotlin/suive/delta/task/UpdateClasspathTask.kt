@@ -10,7 +10,7 @@ class UpdateClasspathTask(
     private val workspace: Workspace
 ) : Task<Unit> {
     override fun execute() {
-        val pom = workspace.externalRoot.resolve("pom.xml")
+        val pom = workspace.internalRoot.resolve("pom.xml")
         val classpath = if (Files.notExists(pom)) {
             emptyList()
         } else {

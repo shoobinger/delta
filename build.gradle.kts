@@ -1,6 +1,6 @@
 plugins {
     groovy
-    kotlin("jvm") version "1.4.10"
+    kotlin("jvm") version "1.4.21"
     idea
     application
 }
@@ -35,16 +35,17 @@ dependencies {
     implementation("org.apache.maven:maven-core:3.0.4")
     implementation("com.jcabi:jcabi-aether:0.10.1") // TODO this dependency is very bloated
 
-    // Groovy.
-    testImplementation("org.codehaus.groovy:groovy-all:3.0.7")
-
     // JUnit.
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.6.0")
+
+    testImplementation("net.javacrumbs.json-unit:json-unit-assertj:2.22.0")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    kotlinOptions.freeCompilerArgs = listOf("-Xuse-experimental=kotlin.ExperimentalUnsignedTypes")
+    kotlinOptions.freeCompilerArgs = listOf(
+        "-Xuse-experimental=kotlin.contracts.ExperimentalContracts"
+    )
     kotlinOptions.jvmTarget = "1.8"
 }
 

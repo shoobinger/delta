@@ -78,7 +78,7 @@ class MethodDispatcher(
         methodName: String,
         paramsRaw: Map<*, *>?
     ) {
-        val actionUnit = requireNotNull(dispatchTable[methodName]) { "No such method" }
+        val actionUnit = requireNotNull(dispatchTable[methodName]) { "Server does not support $methodName" }
 
         val method = actionUnit.method
 
