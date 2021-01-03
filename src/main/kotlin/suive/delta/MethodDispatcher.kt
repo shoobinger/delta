@@ -64,12 +64,8 @@ class MethodDispatcher(
     ) {
         val actionUnit = requireNotNull(dispatchTable[methodName]) { "Server does not support $methodName" }
 
-        val params = if (paramsRaw == null)
-            NoParams
-        else
-            paramsConverter.convertValue(paramsRaw, actionUnit.paramsClass.java) ?: error { "Params are null" }
         workerThreadPool.execute {
-            actionUnit.execute(request, params)
+            actionUnit.performAction(request, paramsRaw ?: emptyMap<Any, Any>(), paramsConverter)
         }
     }
 }

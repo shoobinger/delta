@@ -19,7 +19,7 @@ class StdStreamServer {
 
         Logger.info { "Started server (reading from stdin)" }
         for (i in processStream(input)) {
-            val message = jsonConverter.readValue<RequestMessage>(i) // TODO this may be a notification.
+            val message = jsonConverter.readValue<RequestMessage>(i)
             Logger.info { "Message received: $message" }
 
             if (message.method == "exit") {
