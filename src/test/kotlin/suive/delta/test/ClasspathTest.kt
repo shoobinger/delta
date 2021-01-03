@@ -1,4 +1,4 @@
-package suive.delta
+package suive.delta.test
 
 import net.javacrumbs.jsonunit.assertj.assertThatJson
 import org.assertj.core.api.Assertions.assertThat
@@ -110,7 +110,7 @@ class ClasspathTest : LanguageServerTest() {
         )
 
         // Build should succeed.
-        val secondNotification = testEditor.getNotification("textDocument/publishDiagnostics")
+        val secondNotification = testEditor.getNotification("textDocument/publishDiagnostics", 2)
         assertNotNull(secondNotification)
         assertThatJson(secondNotification) {
             node("params.uri").isEqualTo(testClass.toUri().toString())

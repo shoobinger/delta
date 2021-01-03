@@ -1,26 +1,26 @@
-package suive.delta
+package suive.delta.test
 
-import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.BeforeEach
+import suive.delta.TcpServer
+import suive.delta.TestEditor
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.concurrent.thread
 import kotlin.contracts.contract
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class LanguageServerTest {
 
-    protected lateinit var languageServer: TcpServer
+    private lateinit var languageServer: TcpServer
     protected lateinit var testEditor: TestEditor
 
     companion object {
         const val LANGUAGE_SERVER_PORT = 8500 // TODO Should be selected randomly.
     }
 
-    @BeforeAll
+    @BeforeEach
     fun setup() {
         languageServer = TcpServer(LANGUAGE_SERVER_PORT)
         thread(start = true) { languageServer.start() }
@@ -29,7 +29,7 @@ abstract class LanguageServerTest {
         testEditor = TestEditor(LANGUAGE_SERVER_PORT)
     }
 
-    @AfterAll
+    @AfterEach
     fun shutdown() {
         testEditor.stopSession()
         languageServer.stop()

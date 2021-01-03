@@ -1,7 +1,8 @@
-package suive.delta
+package suive.delta.test
 
 import net.javacrumbs.jsonunit.assertj.assertThatJson
 import org.junit.jupiter.api.Test
+import suive.delta.test.LanguageServerTest
 
 class InitializeTest : LanguageServerTest() {
     @Test

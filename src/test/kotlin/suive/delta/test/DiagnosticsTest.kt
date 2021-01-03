@@ -1,9 +1,8 @@
-package suive.delta
+package suive.delta.test
 
 import net.javacrumbs.jsonunit.assertj.assertThatJson
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import suive.delta.TestEditor.Companion.NEWLINE
 import java.nio.file.Files
 
 class DiagnosticsTest : LanguageServerTest() {
