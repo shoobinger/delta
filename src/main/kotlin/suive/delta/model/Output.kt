@@ -1,7 +1,7 @@
 package suive.delta.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import suive.delta.method.Request
+import suive.delta.Request
 
 sealed class Output {
     abstract class Result(@get: JsonIgnore open val request: Request) : Output()

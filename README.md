@@ -3,7 +3,7 @@
 Delta is a Kotlin Language server (work-in-progress).
 Delta aims to be fast and helpful.
 
-### Features.
+### Features
 - Code diagnostics
 
 ### Features to be implemented

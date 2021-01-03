@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.tinylog.kotlin.Logger
-import suive.delta.method.Request
 import suive.delta.model.transport.RequestMessage
 import java.net.ServerSocket
 import java.net.Socket

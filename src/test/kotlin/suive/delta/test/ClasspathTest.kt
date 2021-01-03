@@ -2,6 +2,7 @@ package suive.delta.test
 
 import net.javacrumbs.jsonunit.assertj.assertThatJson
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 import java.nio.file.Files
@@ -47,6 +48,7 @@ class ClasspathTest : LanguageServerTest() {
     }
 
     @Test
+    @Disabled("Not implemented")
     fun `should rebuild workspace after changing classpath`() {
         val workspaceRoot = createWorkspace("/test-projects/maven")
         val testClass = Files.createFile(

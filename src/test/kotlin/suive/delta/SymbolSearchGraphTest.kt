@@ -1,5 +1,6 @@
 package suive.delta
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import suive.delta.data.SymbolSearchGraph
 
@@ -53,6 +54,7 @@ class SymbolSearchGraphTest {
     }
 
     @Test
+    @Disabled("Not implemented")
     fun `should query by substring`() {
         val tree = SymbolSearchGraph()
         tree.add("LogStream", "LongStream", "LongStreamTest")
