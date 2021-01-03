@@ -7,3 +7,12 @@ data class DidChangeWatchedFilesRegistrationOptions(
 data class FileSystemWatcher(
     val globPattern: String
 )
+
+data class DidChangeWatchedFilesParams(
+    val changes: List<FileEvent>
+)
+
+data class FileEvent(
+    val uri: String,
+    val type: Int
+)

@@ -107,10 +107,10 @@ class ClasspathTest : LanguageServerTest() {
             "workspace/didChangeWatchedFiles",
             """
                 {
-                  "changes": {
+                  "changes": [{
                     "uri": "${pom.toUri()}",
                     "type": 2
-                  }
+                  }]
                 }
             """.trimIndent()
         )

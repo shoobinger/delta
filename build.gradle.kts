@@ -21,6 +21,7 @@ dependencies {
     implementation("org.tinylog:tinylog-api:2.2.1")
     implementation("org.tinylog:tinylog-impl:2.2.1")
     implementation("org.tinylog:tinylog-api-kotlin:2.2.1")
+    implementation("org.tinylog:slf4j-tinylog:2.2.1")
 
     // Serialization.
     implementation("com.fasterxml.jackson.core:jackson-databind:2.12.0")
@@ -33,7 +34,10 @@ dependencies {
 
     // Maven.
     implementation("org.apache.maven:maven-core:3.0.4")
-    implementation("com.jcabi:jcabi-aether:0.10.1") // TODO this dependency is very bloated
+    implementation("com.jcabi:jcabi-aether:0.10.1") {
+        exclude("org.kuali.maven.wagons")
+        exclude("org.hibernate")
+    }
 
     // JUnit.
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import suive.delta.model.DidChangeTextDocumentParams
+import suive.delta.model.DidChangeWatchedFilesParams
 import suive.delta.model.InitializeParams
 import suive.delta.model.NoParams
 import suive.delta.service.MavenClasspathCollector
@@ -48,6 +49,13 @@ class MethodDispatcher(
             paramsClass = DidChangeTextDocumentParams::class,
             action = { r, p ->
                 workspaceService.syncDocumentChanges(r, p)
+            }
+        ),
+        ActionUnit(
+            methodName = "workspace/didChangeWatchedFiles",
+            paramsClass = DidChangeWatchedFilesParams::class,
+            action = { r, p ->
+                workspaceService.handleWatchedFileChange(r, p)
             }
         )
     )

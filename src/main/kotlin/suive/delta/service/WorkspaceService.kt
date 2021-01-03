@@ -4,6 +4,7 @@ import org.tinylog.kotlin.Logger
 import suive.delta.Request
 import suive.delta.Workspace
 import suive.delta.model.DidChangeTextDocumentParams
+import suive.delta.model.DidChangeWatchedFilesParams
 import suive.delta.model.DidChangeWatchedFilesRegistrationOptions
 import suive.delta.model.FileSystemWatcher
 import suive.delta.model.InitializeParams
@@ -45,7 +46,7 @@ class WorkspaceService(
                 )
             )
 
-            val pom = workspace.internalRoot.resolve("pom.xml")
+            val pom = workspace.externalRoot.resolve("pom.xml")
             val classpath = if (Files.exists(pom)) {
                 Logger.info { "Found pom.xml, resolving classpath" }
                 classpathCollector.collect(pom)
@@ -61,6 +62,15 @@ class WorkspaceService(
     fun syncDocumentChanges(request: Request, params: DidChangeTextDocumentParams) {
         params.contentChanges.forEach { change ->
             workspace.enqueueChange(params.textDocument.uri, change)
+        }
+    }
+
+    fun handleWatchedFileChange(request: Request, params: DidChangeWatchedFilesParams) {
+        params.changes.forEach { event ->
+            val file = Paths.get(URI(event.uri))
+            if (file.fileName.toString() == "pom.xml") {
+                workspace.updateClasspath(classpathCollector.collect(file))
+            }
         }
     }
 }
