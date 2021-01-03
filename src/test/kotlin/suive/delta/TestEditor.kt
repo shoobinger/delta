@@ -2,9 +2,11 @@ package suive.delta
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.Socket
+import java.net.SocketException
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -40,15 +42,23 @@ class TestEditor(private val port: Int) {
         outputStream = client.getOutputStream()
 
         thread(start = true) {
-            processStream(inputStream).forEach {
-                val message = objectMapper.readValue<Map<*, *>>(it)
-                if (message["method"] != null) {
-                    notifications.set(message["method"] as String, it)
-                } else if (message["id"] != null) {
-                    responses.set(message["id"] as Int, it)
-                } else {
-                    error("Unknown message received")
+            try {
+                processStream(inputStream).forEach {
+                    val message = objectMapper.readValue<Map<*, *>>(it)
+                    when {
+                        message["method"] != null -> {
+                            notifications.set(message["method"] as String, it)
+                        }
+                        message["id"] != null -> {
+                            responses.set(message["id"] as Int, it)
+                        }
+                        else -> {
+                            error("Unknown message received")
+                        }
+                    }
                 }
+            } catch (e: IOException) {
+                // Ignore socket close exception.
             }
         }
 

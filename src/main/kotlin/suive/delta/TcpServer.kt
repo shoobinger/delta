@@ -1,5 +1,6 @@
 package suive.delta
 
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -15,22 +16,20 @@ class TcpServer(
     private lateinit var serverSocket: ServerSocket
     private lateinit var client: Socket
 
-    var state: String = "NOT_STARTED"
-
-    private val jsonConverter = ObjectMapper().registerModule(KotlinModule())
+    private val jsonConverter = ObjectMapper().apply {
+        registerModule(KotlinModule())
+        configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+    }
 
     fun start() {
         serverSocket = ServerSocket(port)
-        Logger.info { "Server socket started on port $port" }
-        state = "STARTED"
         serverSocket.use { socket ->
             client = socket.accept()
             Logger.info { "Client connected." }
-            state = "WAITING_FOR_COMMAND"
             val input = client.getInputStream()
             val methodDispatcher = MethodDispatcher(client.getOutputStream(), jsonConverter)
 
-            Logger.info { "Started server (reading from stdin)" }
+            Logger.info { "Server started on port $port." }
             for (i in processStream(input)) {
                 val message = jsonConverter.readValue<RequestMessage>(i) // TODO this may be a notification.
                 Logger.info { "Message received: $message" }
