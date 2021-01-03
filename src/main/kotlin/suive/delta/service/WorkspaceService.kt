@@ -1,15 +1,19 @@
 package suive.delta.service
 
 import org.tinylog.kotlin.Logger
-import suive.delta.Workspace
 import suive.delta.Request
+import suive.delta.Workspace
 import suive.delta.model.DidChangeTextDocumentParams
+import suive.delta.model.DidChangeWatchedFilesRegistrationOptions
+import suive.delta.model.FileSystemWatcher
 import suive.delta.model.InitializeParams
 import suive.delta.model.InitializeResult
-import suive.delta.model.ServerCapabilities
+import suive.delta.model.Registration
+import suive.delta.model.RegistrationParams
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.UUID
 
 class WorkspaceService(
     private val classpathCollector: MavenClasspathCollector,
@@ -24,17 +28,34 @@ class WorkspaceService(
         }
 
         taskService.execute {
+            Logger.info { "Registering for project descriptor updates" }
+            senderService.sendRequest(
+                "client/registerCapability", RegistrationParams(
+                    listOf(
+                        Registration(
+                            id = UUID.randomUUID().toString(),
+                            method = "workspace/didChangeWatchedFiles",
+                            registerOptions = DidChangeWatchedFilesRegistrationOptions(
+                                listOf(
+                                    FileSystemWatcher("pom.xml")
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+
             val pom = workspace.internalRoot.resolve("pom.xml")
-            val classpath = if (Files.notExists(pom)) {
-                emptyList()
-            } else {
+            val classpath = if (Files.exists(pom)) {
                 Logger.info { "Found pom.xml, resolving classpath" }
                 classpathCollector.collect(pom)
+            } else {
+                emptyList()
             }
             workspace.updateClasspath(classpath)
         }
 
-        senderService.send(InitializeResult(request, ServerCapabilities()))
+        senderService.sendResponse(request.requestId, InitializeResult())
     }
 
     fun syncDocumentChanges(request: Request, params: DidChangeTextDocumentParams) {

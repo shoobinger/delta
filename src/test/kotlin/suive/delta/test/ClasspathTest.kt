@@ -48,7 +48,7 @@ class ClasspathTest : LanguageServerTest() {
     }
 
     @Test
-    @Disabled("Not implemented")
+//    @Disabled("Not implemented")
     fun `should rebuild workspace after changing classpath`() {
         val workspaceRoot = createWorkspace("/test-projects/maven")
         val testClass = Files.createFile(
@@ -80,8 +80,12 @@ class ClasspathTest : LanguageServerTest() {
             node("params.diagnostics[0].message").asString().contains("Unresolved reference")
         }
 
-        // Client should receive dynamic registration request to receive pom.xml change notifications.
-        // TODO
+        // Server should send dynamic registration request to receive pom.xml change notifications.
+        val registrationRequest = testEditor.getRequest("client/registerCapability")
+        assertThatJson(registrationRequest) {
+            node("params.registrations[0].method").isEqualTo("workspace/didChangeWatchedFiles")
+            node("params.registrations[0].registerOptions.watchers[0].globPattern").asString().contains("pom.xml")
+        }
 
         // Add missing dependency.
         val pom = workspaceRoot.resolve("pom.xml")

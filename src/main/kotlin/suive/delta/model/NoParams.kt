@@ -1,3 +1,3 @@
 package suive.delta.model
 
-object NoParams: Params
+object NoParams

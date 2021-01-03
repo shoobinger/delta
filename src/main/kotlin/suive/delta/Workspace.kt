@@ -6,9 +6,9 @@ import org.jetbrains.kotlin.incremental.ICReporterBase
 import org.jetbrains.kotlin.incremental.classpathAsList
 import org.jetbrains.kotlin.incremental.makeIncrementally
 import org.tinylog.kotlin.Logger
-import suive.delta.model.Output
 import suive.delta.model.PublishDiagnosticsParams
 import suive.delta.model.TextDocumentContentChangeEvent
+import suive.delta.model.transport.NotificationMessage
 import suive.delta.service.SenderService
 import suive.delta.util.DiagnosticMessageCollector
 import java.io.File
@@ -137,7 +137,7 @@ class Workspace(
                     newDiagnostics
                 }
                 diagnostics.forEach {
-                    senderService.send(Output.Notification("textDocument/publishDiagnostics", it))
+                    senderService.send(NotificationMessage("textDocument/publishDiagnostics", it))
                 }
             } catch (e: Exception) {
                 Logger.debug(e) { "Compilation cancelled" }

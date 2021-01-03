@@ -6,7 +6,6 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.Socket
-import java.net.SocketException
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -25,6 +24,7 @@ class TestEditor(private val port: Int) {
     private lateinit var workspacePath: Path
 
     private val responses: BlockingMap<Int, Json> = BlockingMap()
+    private val requests: BlockingMap<String, Json> = BlockingMap()
     private val notifications: BlockingMap<String, Json> = BlockingMap()
 
     companion object {
@@ -46,15 +46,10 @@ class TestEditor(private val port: Int) {
                 processStream(inputStream).forEach {
                     val message = objectMapper.readValue<Map<*, *>>(it)
                     when {
-                        message["method"] != null -> {
-                            notifications.set(message["method"] as String, it)
-                        }
-                        message["id"] != null -> {
-                            responses.set(message["id"] as Int, it)
-                        }
-                        else -> {
-                            error("Unknown message received")
-                        }
+                        message["method"] != null && message["id"] != null -> requests[message["method"] as String] = it
+                        message["method"] != null -> notifications[message["method"] as String] = it
+                        message["id"] != null -> responses[message["id"] as Int] = it
+                        else -> error("Unknown message received")
                     }
                 }
             } catch (e: IOException) {
@@ -68,9 +63,9 @@ class TestEditor(private val port: Int) {
         )
     }
 
-    fun getResponse(messageId: Int): String {
-        return responses.get(messageId)
-    }
+    fun getResponse(messageId: Int): String = responses[messageId]
+
+    fun getRequest(method: String) = requests[method]
 
     fun getNotification(method: String, timeout: Long = GET_NOTIFICATION_TIMEOUT_SEC): Json? {
         return notifications.get(method, timeout, TimeUnit.SECONDS)

@@ -19,11 +19,11 @@ class BlockingMap<K, V> {
         } as BlockingQueue<V>
     }
 
-    fun set(key: K, value: V) {
+    operator fun set(key: K, value: V) {
         getQueue(key, true).add(value)
     }
 
-    fun get(key: K): V {
+    operator fun get(key: K): V {
         return getQueue(key, false).take()
     }
 

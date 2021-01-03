@@ -1,13 +1,12 @@
 package suive.delta.model.transport
 
-import suive.delta.model.Output
 
 sealed class ResponseMessage(
     open val id: Int // TODO this may be a string per spec.
 ) : Message() {
-    data class Success<R : Output.Result>(
+    data class Success(
         override val id: Int,
-        val result: R?
+        val result: Any?
     ) : ResponseMessage(id)
 
     data class Error(

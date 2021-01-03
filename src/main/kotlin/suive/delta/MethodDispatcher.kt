@@ -6,7 +6,6 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import suive.delta.model.DidChangeTextDocumentParams
 import suive.delta.model.InitializeParams
 import suive.delta.model.NoParams
-import suive.delta.model.Params
 import suive.delta.service.MavenClasspathCollector
 import suive.delta.service.SenderService
 import suive.delta.service.TaskService
@@ -31,7 +30,7 @@ class MethodDispatcher(
         configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     }
 
-    private val actionUnits = listOf<ActionUnit<*, out KClass<out Params>>>(
+    private val actionUnits = listOf<ActionUnit<*, out KClass<out Any>>>(
         ActionUnit(
             methodName = "initialize",
             paramsClass = InitializeParams::class,
@@ -60,12 +59,12 @@ class MethodDispatcher(
     fun dispatch(
         request: Request,
         methodName: String,
-        paramsRaw: Map<*, *>?
+        paramsRaw: Any?
     ) {
         val actionUnit = requireNotNull(dispatchTable[methodName]) { "Server does not support $methodName" }
 
         workerThreadPool.execute {
-            actionUnit.performAction(request, paramsRaw ?: emptyMap<Any, Any>(), paramsConverter)
+            actionUnit.performAction(request, paramsRaw ?: NoParams, paramsConverter)
         }
     }
 }
