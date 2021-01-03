@@ -1,7 +1,10 @@
 package suive.delta.model.transport
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+
+@JsonDeserialize
 data class RequestMessage(
-    val id: Int?,
-    val method: String,
-    val params: Any?
-) : Message()
+    override val id: Int,
+    override val method: String,
+    override val params: Any?
+) : Message(), WithMethod, WithId, WithParams

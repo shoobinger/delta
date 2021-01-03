@@ -2,9 +2,7 @@ package suive.delta.test
 
 import net.javacrumbs.jsonunit.assertj.assertThatJson
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-
 import java.nio.file.Files
 
 class ClasspathTest : LanguageServerTest() {
@@ -48,7 +46,6 @@ class ClasspathTest : LanguageServerTest() {
     }
 
     @Test
-//    @Disabled("Not implemented")
     fun `should rebuild workspace after changing classpath`() {
         val workspaceRoot = createWorkspace("/test-projects/maven")
         val testClass = Files.createFile(
@@ -121,6 +118,42 @@ class ClasspathTest : LanguageServerTest() {
         assertThatJson(secondNotification) {
             node("params.uri").isEqualTo(testClass.toUri().toString())
             node("params.diagnostics").isArray.hasSize(0)
+        }
+
+        // Remove dependency again.
+        Files.writeString(
+            pom, Files.readString(pom).replace(
+                """
+            <dependency>
+                <groupId>io.vavr</groupId>
+                <artifactId>vavr</artifactId>
+                <version>0.10.3</version>
+            </dependency>
+        </dependencies>
+        """.trimIndent() ,"</dependencies>"
+            )
+        )
+
+        // Send didChangeWatchedFiles.
+        testEditor.sendNotification(
+            "workspace/didChangeWatchedFiles",
+            """
+                {
+                  "changes": [{
+                    "uri": "${pom.toUri()}",
+                    "type": 2
+                  }]
+                }
+            """.trimIndent()
+        )
+
+        // Should receive build error again.
+        val newDiagnosticNotification = testEditor.getNotification("textDocument/publishDiagnostics")
+        assertNotNull(newDiagnosticNotification)
+        assertThatJson(newDiagnosticNotification) {
+            node("params.uri").isEqualTo(testClass.toUri().toString())
+            node("params.diagnostics").isArray.hasSizeGreaterThan(1)
+            node("params.diagnostics[0].message").asString().contains("Unresolved reference")
         }
     }
 }

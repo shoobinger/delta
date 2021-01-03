@@ -1,6 +1,9 @@
 package suive.delta.model.transport
 
-data class NotificationMessage<P: Any>(
-    val method: String,
-    val params: P
-) : Message()
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+
+@JsonDeserialize
+data class NotificationMessage<P : Any>(
+    override val method: String,
+    override val params: P
+) : Message(), WithMethod, WithParams

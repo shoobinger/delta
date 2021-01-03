@@ -1,9 +1,11 @@
 package suive.delta.model.transport
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
+@JsonDeserialize
 sealed class ResponseMessage(
-    open val id: Int // TODO this may be a string per spec.
-) : Message() {
+    override val id: Int // TODO this may be a string per spec.
+) : Message(), WithId {
     data class Success(
         override val id: Int,
         val result: Any?

@@ -38,7 +38,7 @@ class WorkspaceService(
                             method = "workspace/didChangeWatchedFiles",
                             registerOptions = DidChangeWatchedFilesRegistrationOptions(
                                 listOf(
-                                    FileSystemWatcher("pom.xml")
+                                    FileSystemWatcher("**/pom.xml")
                                 )
                             )
                         )
