@@ -24,10 +24,9 @@ dependencies {
     implementation("org.tinylog:slf4j-tinylog:2.2.1")
 
     // Serialization.
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.12.0")
-    implementation("com.fasterxml.jackson.core:jackson-core:2.12.0")
-    implementation("com.fasterxml.jackson.core:jackson-annotations:2.12.0")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.0")
+    implementation(platform("com.fasterxml.jackson:jackson-bom:2.12.0"))
+    implementation("com.fasterxml.jackson.core:jackson-databind")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
     // Kotlin Compiler.
     implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:1.4.21")
@@ -40,8 +39,9 @@ dependencies {
     }
 
     // JUnit.
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.6.0")
+    testImplementation(platform("org.junit:junit-bom:5.7.0"))
+    testImplementation("org.junit.jupiter:junit-jupiter-api")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 
     testImplementation("net.javacrumbs.json-unit:json-unit-assertj:2.22.0")
 }
