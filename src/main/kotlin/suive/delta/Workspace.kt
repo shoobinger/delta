@@ -18,7 +18,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.Semaphore
 import kotlin.concurrent.thread
 import kotlin.system.measureTimeMillis
 
@@ -78,8 +77,8 @@ class Workspace(
         }
     }
 
-    fun startDiagnostics() {
-        diagnosticSemaphore.release()
+    fun startDiagnostics(cleanBuild: Boolean = false) {
+        buildRequestQueue.offer(BuildRequest(cleanBuild))
     }
 
     fun cancelDiagnostics() {
@@ -89,21 +88,37 @@ class Workspace(
         }
     }
 
+
+    private data class BuildRequest(
+        val cleanBuild: Boolean = false
+    )
+
+    private val buildRequestQueue = LinkedBlockingQueue<BuildRequest>()
+
     private val problematicFiles = mutableSetOf<String>()
-    private val diagnosticSemaphore = Semaphore(0)
 
     @Volatile
     private var diagnosticInProgress = false
     private val diagnosticRunner = thread(start = true, name = "DiagnosticRunner") {
         while (true) {
-            diagnosticSemaphore.acquireUninterruptibly()
+            val buildRequest = buildRequestQueue.take() // TODO handle interrupted exception
+            Logger.info { "Build request: $buildRequest" }
             try {
                 diagnosticInProgress = true
                 Thread.sleep(DIAGNOSTIC_DELAY)
                 val messageCollector = DiagnosticMessageCollector(this)
+
+                val cacheDir = internalRoot.resolve("cache")
+                val srcDir = internalRoot.resolve("src")
+                val classesDir = internalRoot.resolve("classes")
+
+                if (buildRequest.cleanBuild) {
+                    Files.deleteIfExists(cacheDir.resolve("build-history.bin"))
+                    Files.deleteIfExists(cacheDir.resolve("last-build.bin"))
+                }
+
                 val args = K2JVMCompilerArguments().apply {
-                    destination =
-                        internalRoot.resolve("classes").toAbsolutePath().toString()
+                    destination = classesDir.toAbsolutePath().toString()
                     classpathAsList = this@Workspace.classpath
                     noStdlib = true
                     moduleName = "test"
@@ -115,8 +130,8 @@ class Workspace(
 
                 measureTimeMillis {
                     makeIncrementally(
-                        internalRoot.resolve("cache").toFile(),
-                        listOf(internalRoot.resolve("src").toFile()),
+                        cacheDir.toFile(),
+                        listOf(srcDir.toFile()),
                         args,
                         messageCollector,
                         icReporter
@@ -186,6 +201,6 @@ class Workspace(
     fun updateClasspath(paths: List<Path>) {
         classpath = paths.map { it.toFile() }
         Logger.info { "Classpath updated, new classpath $classpath" }
-        startDiagnostics()
+        startDiagnostics(cleanBuild = true)
     }
 }
