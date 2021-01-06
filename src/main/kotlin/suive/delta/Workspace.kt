@@ -78,6 +78,7 @@ class Workspace(
     }
 
     fun startDiagnostics(cleanBuild: Boolean = false) {
+        buildRequestQueue.clear()
         buildRequestQueue.offer(BuildRequest(cleanBuild))
     }
 
@@ -101,9 +102,9 @@ class Workspace(
     private var diagnosticInProgress = false
     private val diagnosticRunner = thread(start = true, name = "DiagnosticRunner") {
         while (true) {
-            val buildRequest = buildRequestQueue.take() // TODO handle interrupted exception
-            Logger.info { "Build request: $buildRequest" }
             try {
+                val buildRequest = buildRequestQueue.take()
+                Logger.info { "Build request: $buildRequest" }
                 diagnosticInProgress = true
                 Thread.sleep(DIAGNOSTIC_DELAY)
                 val messageCollector = DiagnosticMessageCollector(this)
