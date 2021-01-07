@@ -6,7 +6,7 @@ import java.nio.file.Files
 class CompletionTest : LanguageServerTest() {
 
     @Test
-    fun `should complete instance methods of local classes`() {
+    fun `should complete members of classes`() {
         val workspaceRoot = createWorkspace("/test-projects/maven")
         val testClass = Files.createFile(
             workspaceRoot.resolve("src/main/kotlin/suive/delta/testproject/TestClass.kt")
@@ -80,6 +80,7 @@ class CompletionTest : LanguageServerTest() {
             
             private class A {
                 private val prop: String = "123"
+                private fun method() {}
             }
             
             class TestClass {
@@ -97,7 +98,7 @@ class CompletionTest : LanguageServerTest() {
         val response = testEditor.request(
             "textDocument/completion", """{
             "textDocument": { "uri": "${testClass.toUri()}" },
-            "position": { "line": 9, "character": 10 },
+            "position": { "line": 10, "character": 10 },
             "context": {
               "triggerKind": 2,
               "triggerCharacter": "."
@@ -111,6 +112,11 @@ class CompletionTest : LanguageServerTest() {
                 .noneSatisfy {
                     assertJson(it) {
                         node("label").asString().contains("prop")
+                    }
+                }
+                .noneSatisfy {
+                    assertJson(it) {
+                        node("label").asString().contains("method")
                     }
                 }
         }

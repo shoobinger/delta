@@ -15,13 +15,15 @@ import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
 import org.jetbrains.kotlin.container.get
-import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
+import org.jetbrains.kotlin.descriptors.DeclarationDescriptorWithVisibility
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.metadata.jvm.deserialization.JvmProtoBufUtil
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
+import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.LazyTopDownAnalyzer
 import org.jetbrains.kotlin.resolve.TopDownAnalysisMode
 import org.jetbrains.kotlin.resolve.lazy.declarations.FileBasedDeclarationProviderFactory
@@ -35,30 +37,8 @@ import java.nio.file.Files
 class CompletionService(
     private val workspace: Workspace
 ) {
-
+    // TODO refactor this long method.
     fun getCompletions(fileUri: String, row: Int, col: Int): CompletionResult {
-        return CompletionResult(items = getDeclarationDescriptors(fileUri, row, col).mapNotNull { descriptor ->
-            when (descriptor) {
-                is FunctionDescriptor -> {
-                    val name = descriptor.name
-                    val parameters = descriptor.valueParameters.joinToString(",") { "${it.name}: ${it.type}" }
-                    val returnType = descriptor.returnType
-                    val label = "$name($parameters): $returnType"
-                    val insertText = if (parameters.isEmpty()) "$name()" else "$name("
-                    CompletionItem(label, insertText)
-                }
-                is PropertyDescriptor -> {
-                    val name = descriptor.name
-                    val returnType = descriptor.returnType
-                    val label = "$name: $returnType"
-                    CompletionItem(label, name.toString())
-                }
-                else -> null
-            }
-        })
-    }
-
-    private fun getDeclarationDescriptors(fileUri: String, row: Int, col: Int): List<DeclarationDescriptor> {
         val trace = CliBindingTrace()
         val rootDisposable = Disposer.newDisposable()
         val configuration = CompilerConfiguration().apply {
@@ -106,14 +86,43 @@ class CompletionService(
             .analyzeDeclarations(TopDownAnalysisMode.TopLevelDeclarations, listOf(ktFile))
         val bc = trace.bindingContext
 
-        val element = ktFile.findElementAt(getOffset(text, row, col))
-        val parent = element?.parent
+        val element = ktFile.findElementAt(getOffset(text, row, col)) ?: error("No element at point")
+        val parent = element.parent
+        val callSite = element.parentsWithSelf
+            .mapNotNull { bc[BindingContext.DECLARATION_TO_DESCRIPTOR, it] }
+            .firstOrNull() ?: error("Call site can't be determined")
 
-        if (parent is KtDotQualifiedExpression) {
-            val receiverType = bc.getType(parent.receiverExpression) ?: return emptyList()
-            return receiverType.memberScope.getContributedDescriptors().toList()
-        }
+        val descriptors = if (parent is KtDotQualifiedExpression) {
+            bc.getType(parent.receiverExpression)
+                ?.memberScope
+                ?.getContributedDescriptors()
+                ?.toList().orEmpty()
+        } else emptyList()
 
-        return emptyList()
+        return CompletionResult(items = descriptors
+            .filter {
+                if (it is DeclarationDescriptorWithVisibility) {
+                    it.visibility.isVisible(null, it, callSite)
+                } else true
+            }
+            .mapNotNull { descriptor ->
+            when (descriptor) {
+                is FunctionDescriptor -> {
+                    val name = descriptor.name
+                    val parameters = descriptor.valueParameters.joinToString(",") { "${it.name}: ${it.type}" }
+                    val returnType = descriptor.returnType
+                    val label = "$name($parameters): $returnType"
+                    val insertText = if (parameters.isEmpty()) "$name()" else "$name("
+                    CompletionItem(label, insertText)
+                }
+                is PropertyDescriptor -> {
+                    val name = descriptor.name
+                    val returnType = descriptor.returnType
+                    val label = "$name: $returnType"
+                    CompletionItem(label, name.toString())
+                }
+                else -> null
+            }
+        })
     }
 }
