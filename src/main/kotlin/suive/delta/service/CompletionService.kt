@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
 import org.jetbrains.kotlin.container.get
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
+import org.jetbrains.kotlin.descriptors.PropertyDescriptor
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.metadata.jvm.deserialization.JvmProtoBufUtil
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
@@ -45,6 +46,12 @@ class CompletionService(
                     val label = "$name($parameters): $returnType"
                     val insertText = if (parameters.isEmpty()) "$name()" else "$name("
                     CompletionItem(label, insertText)
+                }
+                is PropertyDescriptor -> {
+                    val name = descriptor.name
+                    val returnType = descriptor.returnType
+                    val label = "$name: $returnType"
+                    CompletionItem(label, name.toString())
                 }
                 else -> null
             }
