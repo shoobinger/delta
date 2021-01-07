@@ -5,9 +5,11 @@ Delta aims to be fast and helpful.
 
 ### Features
 - Code diagnostics
+- Basic Maven support
 
 ### Features to be implemented
-- Maven and Gradle integration
+- Maven multi-module projects
+- Gradle support 
 - Parameters help
 - Local code completion (local variables, methods)
 - Global code completion (classes from classpath)
