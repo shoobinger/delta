@@ -16,7 +16,8 @@ class CompletionTest : LanguageServerTest() {
             package suive.delta.testproject
             
             class A {
-                fun method(p: Int): String = p.toString()
+                fun method(): String = ""
+                fun methodWithArgs(p: Int): String = p.toString()
             }
             
             class TestClass {
@@ -30,10 +31,11 @@ class CompletionTest : LanguageServerTest() {
 
         testEditor.initialize(workspaceRoot)
 
+        // Completion request sent by the editor right after typing ".".
         val response = testEditor.request(
             "textDocument/completion", """{
             "textDocument": { "uri": "${testClass.toUri()}" },
-            "position": { "line": 9, "character": 9 },
+            "position": { "line": 10, "character": 10 },
             "context": {
               "triggerKind": 2,
               "triggerCharacter": "."
@@ -43,11 +45,19 @@ class CompletionTest : LanguageServerTest() {
 
         assertJson(response) {
             node("result.items").isNotNull
-            node("result.items").isArray.hasSizeGreaterThan(1).anySatisfy {
-                assertJson(it) {
-                    node("label").asString().contains("method(p: Int)")
+            node("result.items").isArray.hasSizeGreaterThan(1)
+                .anySatisfy {
+                    assertJson(it) {
+                        node("label").asString().contains("method()")
+                        node("insertText").isEqualTo("method()")
+                    }
                 }
-            }
+                .anySatisfy {
+                    assertJson(it) {
+                        node("label").asString().contains("methodWithArgs(p: Int)")
+                        node("insertText").isEqualTo("methodWithArgs(")
+                    }
+                }
         }
     }
 }

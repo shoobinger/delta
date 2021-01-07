@@ -25,6 +25,8 @@ import org.jetbrains.kotlin.resolve.LazyTopDownAnalyzer
 import org.jetbrains.kotlin.resolve.TopDownAnalysisMode
 import org.jetbrains.kotlin.resolve.lazy.declarations.FileBasedDeclarationProviderFactory
 import suive.delta.Workspace
+import suive.delta.model.CompletionItem
+import suive.delta.model.CompletionResult
 import suive.delta.util.DiagnosticMessageCollector
 import suive.delta.util.getOffset
 import java.nio.file.Files
@@ -33,15 +35,20 @@ class CompletionService(
     private val workspace: Workspace
 ) {
 
-    fun getCompletions(fileUri: String, row: Int, col: Int): List<String> {
-        return getDeclarationDescriptors(fileUri, row, col).mapNotNull { d->
-            if (d is FunctionDescriptor) {
-                val name = d.name
-                val parameters = d.valueParameters.joinToString(",") { "${it.name}: ${it.type}" }
-                val returnType = d.returnType
-                "$name($parameters): $returnType"
-            } else null
-        }
+    fun getCompletions(fileUri: String, row: Int, col: Int): CompletionResult {
+        return CompletionResult(items = getDeclarationDescriptors(fileUri, row, col).mapNotNull { descriptor ->
+            when (descriptor) {
+                is FunctionDescriptor -> {
+                    val name = descriptor.name
+                    val parameters = descriptor.valueParameters.joinToString(",") { "${it.name}: ${it.type}" }
+                    val returnType = descriptor.returnType
+                    val label = "$name($parameters): $returnType"
+                    val insertText = if (parameters.isEmpty()) "$name()" else "$name("
+                    CompletionItem(label, insertText)
+                }
+                else -> null
+            }
+        })
     }
 
     private fun getDeclarationDescriptors(fileUri: String, row: Int, col: Int): List<DeclarationDescriptor> {

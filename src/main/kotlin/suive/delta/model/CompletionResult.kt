@@ -7,5 +7,6 @@ data class CompletionResult(
 
 data class CompletionItem(
     val label: String,
+    val insertText: String = label,
     val kind: Int = 1
 )
