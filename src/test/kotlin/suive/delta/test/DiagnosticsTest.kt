@@ -1,6 +1,5 @@
 package suive.delta.test
 
-import net.javacrumbs.jsonunit.assertj.assertThatJson
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
@@ -26,8 +25,7 @@ class DiagnosticsTest : LanguageServerTest() {
         testEditor.initialize(workspaceRoot)
 
         val diagnosticNotification = testEditor.getNotification("textDocument/publishDiagnostics")
-        assertNotNull(diagnosticNotification)
-        assertThatJson(diagnosticNotification) {
+        assertJson(diagnosticNotification) {
             node("params.uri").isEqualTo(testClass.toUri().toString())
             node("params.diagnostics").isArray.hasSize(1)
             with(node("params.diagnostics[0]")) {
@@ -54,8 +52,7 @@ class DiagnosticsTest : LanguageServerTest() {
         )
 
         val notification = testEditor.getNotification("textDocument/publishDiagnostics")
-        assertNotNull(notification)
-        assertThatJson(notification) {
+        assertJson(notification) {
             node("params.uri").isEqualTo(testClass.toUri().toString())
             node("params.diagnostics").isArray.hasSize(1)
             with(node("params.diagnostics[0]")) {
@@ -119,8 +116,7 @@ class DiagnosticsTest : LanguageServerTest() {
         }
 
         val notification = testEditor.getNotification("textDocument/publishDiagnostics")
-        assertNotNull(notification)
-        assertThatJson(notification) {
+        assertJson(notification) {
             node("params.uri").isEqualTo(testClass.toUri().toString())
             node("params.diagnostics").isArray.hasSize(1)
             with(node("params.diagnostics[0]")) {
@@ -152,8 +148,7 @@ class DiagnosticsTest : LanguageServerTest() {
         testEditor.initialize(workspaceRoot)
 
         val notification = testEditor.getNotification("textDocument/publishDiagnostics")
-        assertNotNull(notification)
-        assertThatJson(notification) {
+        assertJson(notification) {
             node("params.uri").isEqualTo(testClass.toUri().toString())
             node("params.diagnostics").isArray.hasSize(1)
             with(node("params.diagnostics[0]")) {
@@ -181,8 +176,7 @@ class DiagnosticsTest : LanguageServerTest() {
 
         // Empty diagnostics are received.
         val secondNotification = testEditor.getNotification("textDocument/publishDiagnostics")
-        assertNotNull(secondNotification)
-        assertThatJson(secondNotification) {
+        assertJson(secondNotification) {
             node("params.uri").isEqualTo(testClass.toUri().toString())
             node("params.diagnostics").isArray.hasSize(0)
         }

@@ -3,10 +3,14 @@ package suive.delta
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import suive.delta.model.CompletionItem
+import suive.delta.model.CompletionParams
+import suive.delta.model.CompletionResult
 import suive.delta.model.DidChangeTextDocumentParams
 import suive.delta.model.DidChangeWatchedFilesParams
 import suive.delta.model.InitializeParams
 import suive.delta.model.NoParams
+import suive.delta.service.CompletionService
 import suive.delta.service.MavenClasspathCollector
 import suive.delta.service.SenderService
 import suive.delta.service.TaskService
@@ -25,6 +29,7 @@ class MethodDispatcher(
     private val workspace = Workspace(senderService)
     private val taskService = TaskService()
     private val workspaceService = WorkspaceService(mavenClasspathCollector, workspace, taskService, senderService)
+    private val completionService = CompletionService(workspace)
 
     private val paramsConverter = ObjectMapper().apply {
         registerModule(KotlinModule())
@@ -47,15 +52,23 @@ class MethodDispatcher(
         ActionUnit(
             methodName = "textDocument/didChange",
             paramsClass = DidChangeTextDocumentParams::class,
-            action = { r, p ->
-                workspaceService.syncDocumentChanges(r, p)
+            action = { _, p ->
+                workspaceService.syncDocumentChanges(p)
             }
         ),
         ActionUnit(
             methodName = "workspace/didChangeWatchedFiles",
             paramsClass = DidChangeWatchedFilesParams::class,
+            action = { _, p ->
+                workspaceService.handleWatchedFileChange(p)
+            }
+        ),
+        ActionUnit(
+            methodName = "textDocument/completion",
+            paramsClass = CompletionParams::class,
             action = { r, p ->
-                workspaceService.handleWatchedFileChange(r, p)
+                val completions = completionService.getCompletions(p.textDocument.uri, p.position.line, p.position.character)
+                senderService.sendResponse(r.requestId, CompletionResult(items = completions.map(::CompletionItem)))
             }
         )
     )

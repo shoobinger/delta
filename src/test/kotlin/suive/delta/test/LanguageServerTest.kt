@@ -1,19 +1,18 @@
 package suive.delta.test
 
+import net.javacrumbs.jsonunit.assertj.JsonAssert
+import net.javacrumbs.jsonunit.assertj.assertThatJson
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import suive.delta.TcpServer
 import suive.delta.TestEditor
+import java.io.IOException
+import java.net.ServerSocket
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.concurrent.thread
-import kotlin.contracts.contract
-import java.io.IOException
-import java.lang.IllegalStateException
-
-import java.net.ServerSocket
 
 abstract class LanguageServerTest {
 
@@ -56,12 +55,9 @@ abstract class LanguageServerTest {
         }
     }
 
-    protected fun <T : Any?> assertNotNull(a: T?): T? {
-        contract {
-            returns() implies (a != null)
-        }
+    protected fun assertJson(a: Any?, lambda: JsonAssert.ConfigurableJsonAssert.() -> Unit) {
         Assertions.assertNotNull(a)
-        return a
+        assertThatJson(checkNotNull(a), lambda)
     }
 
     private fun findFreePort(): Int {

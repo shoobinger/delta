@@ -3,6 +3,7 @@ package suive.delta.service
 import org.tinylog.kotlin.Logger
 import suive.delta.Request
 import suive.delta.Workspace
+import suive.delta.model.CompletionRegistrationOptions
 import suive.delta.model.DidChangeTextDocumentParams
 import suive.delta.model.DidChangeWatchedFilesParams
 import suive.delta.model.DidChangeWatchedFilesRegistrationOptions
@@ -29,7 +30,7 @@ class WorkspaceService(
         }
 
         taskService.execute {
-            Logger.info { "Registering for project descriptor updates" }
+            Logger.info { "Registering dynamic client capabilities" }
             senderService.sendRequest(
                 "client/registerCapability", RegistrationParams(
                     listOf(
@@ -41,6 +42,11 @@ class WorkspaceService(
                                     FileSystemWatcher("**/pom.xml")
                                 )
                             )
+                        ),
+                        Registration(
+                            id = UUID.randomUUID().toString(),
+                            method = "textDocument/completion",
+                            registerOptions = CompletionRegistrationOptions()
                         )
                     )
                 )
@@ -59,13 +65,13 @@ class WorkspaceService(
         senderService.sendResponse(request.requestId, InitializeResult())
     }
 
-    fun syncDocumentChanges(request: Request, params: DidChangeTextDocumentParams) {
+    fun syncDocumentChanges(params: DidChangeTextDocumentParams) {
         params.contentChanges.forEach { change ->
             workspace.enqueueChange(params.textDocument.uri, change)
         }
     }
 
-    fun handleWatchedFileChange(request: Request, params: DidChangeWatchedFilesParams) {
+    fun handleWatchedFileChange(params: DidChangeWatchedFilesParams) {
         params.changes.forEach { event ->
             val file = Paths.get(URI(event.uri))
             if (file.fileName.toString() == "pom.xml") {

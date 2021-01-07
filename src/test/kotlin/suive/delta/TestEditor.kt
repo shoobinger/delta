@@ -28,13 +28,13 @@ class TestEditor(private val port: Int) {
     private val notifications: BlockingMap<String, Json> = BlockingMap()
 
     companion object {
-        const val GET_NOTIFICATION_TIMEOUT_SEC = 120L
+        const val GET_NOTIFICATION_TIMEOUT_SEC = 2L
     }
 
     private val messageId = AtomicInteger(0)
     private val objectMapper = ObjectMapper()
 
-    fun initialize(workspacePath: Path): String {
+    fun initialize(workspacePath: Path): Json? {
         this.workspacePath = workspacePath
 
         client = Socket("localhost", port)
@@ -63,7 +63,7 @@ class TestEditor(private val port: Int) {
         )
     }
 
-    fun getResponse(messageId: Int): String = responses[messageId]
+    fun getResponse(messageId: Int): Json? = responses.get(messageId, GET_NOTIFICATION_TIMEOUT_SEC, TimeUnit.SECONDS)
 
     fun getRequest(method: String) = requests[method]
 
@@ -71,7 +71,7 @@ class TestEditor(private val port: Int) {
         return notifications.get(method, timeout, TimeUnit.SECONDS)
     }
 
-    protected fun request(method: String, params: String): String {
+    fun request(method: String, params: String): Json? {
         val messageId = send(method, params)
         return getResponse(messageId)
     }

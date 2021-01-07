@@ -1,6 +1,5 @@
 package suive.delta.test
 
-import net.javacrumbs.jsonunit.assertj.assertThatJson
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
@@ -70,8 +69,7 @@ class ClasspathTest : LanguageServerTest() {
 
         // Vavr is not in the classpath, should receive build errors.
         val diagnosticNotification = testEditor.getNotification("textDocument/publishDiagnostics")
-        assertNotNull(diagnosticNotification)
-        assertThatJson(diagnosticNotification) {
+        assertJson(diagnosticNotification) {
             node("params.uri").isEqualTo(testClass.toUri().toString())
             node("params.diagnostics").isArray.hasSizeGreaterThan(1)
             node("params.diagnostics[0].message").asString().contains("Unresolved reference")
@@ -79,7 +77,7 @@ class ClasspathTest : LanguageServerTest() {
 
         // Server should send dynamic registration request to receive pom.xml change notifications.
         val registrationRequest = testEditor.getRequest("client/registerCapability")
-        assertThatJson(registrationRequest) {
+        assertJson(registrationRequest) {
             node("params.registrations[0].method").isEqualTo("workspace/didChangeWatchedFiles")
             node("params.registrations[0].registerOptions.watchers[0].globPattern").asString().contains("pom.xml")
         }
@@ -114,8 +112,7 @@ class ClasspathTest : LanguageServerTest() {
 
         // Build should succeed.
         val secondNotification = testEditor.getNotification("textDocument/publishDiagnostics", 2)
-        assertNotNull(secondNotification)
-        assertThatJson(secondNotification) {
+        assertJson(secondNotification) {
             node("params.uri").isEqualTo(testClass.toUri().toString())
             node("params.diagnostics").isArray.hasSize(0)
         }
@@ -149,8 +146,7 @@ class ClasspathTest : LanguageServerTest() {
 
         // Should receive build error again.
         val newDiagnosticNotification = testEditor.getNotification("textDocument/publishDiagnostics")
-        assertNotNull(newDiagnosticNotification)
-        assertThatJson(newDiagnosticNotification) {
+        assertJson(newDiagnosticNotification) {
             node("params.uri").isEqualTo(testClass.toUri().toString())
             node("params.diagnostics").isArray.hasSizeGreaterThan(1)
             node("params.diagnostics[0].message").asString().contains("Unresolved reference")

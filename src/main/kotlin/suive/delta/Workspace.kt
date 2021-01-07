@@ -11,6 +11,7 @@ import suive.delta.model.TextDocumentContentChangeEvent
 import suive.delta.model.transport.NotificationMessage
 import suive.delta.service.SenderService
 import suive.delta.util.DiagnosticMessageCollector
+import suive.delta.util.getOffset
 import java.io.File
 import java.net.URI
 import java.nio.file.Files
@@ -189,10 +190,6 @@ class Workspace(
         )
         Logger.debug { "New file content: [$newContent]" }
         internalPath.toFile().writeText(newContent)
-    }
-
-    private fun getOffset(text: String, row: Int, col: Int): Int {
-        return text.lineSequence().take(row).fold(0) { acc, l -> acc + l.length + 1 /* 1 for newline */ } + col
     }
 
     fun enqueueChange(uri: String, change: TextDocumentContentChangeEvent) {
