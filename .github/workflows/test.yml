@@ -1,4 +1,4 @@
-name: Build Delta
+name: Build
 
 on: push
 
@@ -6,11 +6,9 @@ jobs:
   build:
     name: Build and run tests
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
       - name: Setup JDK
         uses: actions/setup-java@v1
         with:

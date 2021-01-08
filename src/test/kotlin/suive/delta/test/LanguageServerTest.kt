@@ -36,7 +36,7 @@ abstract class LanguageServerTest {
     }
 
     protected fun createWorkspace(resource: String? = null): Path {
-        val root = Files.createTempDirectory("delta-test-workspace")
+        val root = Files.createTempDirectory(Paths.get(System.getenv("RUNNER_TEMP")), "delta-test-workspace")
 
         if (resource != null) {
             copyDirectory(Paths.get(LanguageServerTest::class.java.getResource(resource).toURI()), root)
