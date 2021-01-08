@@ -2,6 +2,7 @@ package suive.delta.test
 
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
+import java.nio.file.Paths
 
 class CompletionTest : LanguageServerTest() {
 
@@ -71,8 +72,9 @@ class CompletionTest : LanguageServerTest() {
     @Test
     fun `should take into account visibility modifiers`() {
         val workspaceRoot = createWorkspace("/test-projects/maven")
-        val classDir = workspaceRoot.resolve("src/main/kotlin/suive/delta/testproject/TestClass.kt")
-        println(classDir)
+        Files.walk(Paths.get(".").toAbsolutePath()).forEach {
+            println(it)
+        }
         val testClass = Files.createFile(
             workspaceRoot.resolve("src/main/kotlin/suive/delta/testproject/TestClass.kt")
         )
