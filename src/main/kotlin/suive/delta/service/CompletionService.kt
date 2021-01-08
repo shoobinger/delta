@@ -102,7 +102,7 @@ class CompletionService(
         return CompletionResult(items = descriptors
             .filter {
                 if (it is DeclarationDescriptorWithVisibility) {
-                    it.visibility.isVisible(null, it, callSite)
+                    it.visibility.isVisible(null, it, callSite) // TODO what is the first parameter
                 } else true
             }
             .mapNotNull { descriptor ->
