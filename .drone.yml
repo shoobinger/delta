@@ -1,8 +1,0 @@
-kind: pipeline
-name: test
-
-steps:
-- name: test
-  image: openjdk:15-jdk-alpine
-  commands:
-    - ./gradlew test
