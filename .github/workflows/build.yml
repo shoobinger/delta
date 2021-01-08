@@ -20,7 +20,7 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: ${{ runner.os }}-gradle
       - name: Set env vars
-        run: echo "TEMP_DIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+        run: echo "TEMP_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
       - name: Build with Gradle
         run: ./gradlew test
 
