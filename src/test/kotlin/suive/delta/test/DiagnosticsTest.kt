@@ -97,7 +97,7 @@ class DiagnosticsTest : LanguageServerTest() {
                     }
                 """.trimIndent()
             )
-            Thread.sleep(10)
+            Thread.sleep(20)
 
             // Add invalid symbol.
             testEditor.sendNotification(
@@ -112,7 +112,7 @@ class DiagnosticsTest : LanguageServerTest() {
                     }
                 """.trimIndent()
             )
-            Thread.sleep(10)
+            Thread.sleep(20)
         }
 
         val notification = testEditor.getNotification("textDocument/publishDiagnostics")
