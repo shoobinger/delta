@@ -1,5 +1,7 @@
 # Delta — Language Server for Kotlin
 
+![Build](https://github.com/suive/delta/workflows/Build/badge.svg)
+
 Delta is a Kotlin Language server (work-in-progress).
 Delta aims to be fast and helpful.
 
