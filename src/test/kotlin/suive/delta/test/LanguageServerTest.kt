@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import suive.delta.TcpServer
 import suive.delta.TestEditor
+import suive.delta.getTempDir
 import java.io.IOException
 import java.net.ServerSocket
 import java.nio.file.Files
@@ -36,7 +37,7 @@ abstract class LanguageServerTest {
     }
 
     protected fun createWorkspace(resource: String? = null): Path {
-        val root = Files.createTempDirectory(Paths.get(System.getenv("RUNNER_TEMP")), "delta-test-workspace")
+        val root = Files.createTempDirectory(Paths.get(getTempDir()), "delta-test-workspace")
 
         if (resource != null) {
             copyDirectory(Paths.get(LanguageServerTest::class.java.getResource(resource).toURI()), root)

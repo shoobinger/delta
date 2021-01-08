@@ -30,7 +30,7 @@ class Workspace(
     }
 
     lateinit var externalRoot: Path
-    val internalRoot = Paths.get("/tmp", "delta-workspace-${UUID.randomUUID()}").apply {
+    val internalRoot = Paths.get(getTempDir(), "delta-workspace-${UUID.randomUUID()}").apply {
         Files.createDirectories(this)
     }
 
