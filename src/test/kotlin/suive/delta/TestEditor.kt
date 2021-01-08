@@ -28,7 +28,7 @@ class TestEditor(private val port: Int) {
     private val notifications: BlockingMap<String, Json> = BlockingMap()
 
     companion object {
-        const val GET_NOTIFICATION_TIMEOUT_SEC = 5L
+        const val GET_NOTIFICATION_TIMEOUT_SEC = 15L
     }
 
     private val messageId = AtomicInteger(0)
