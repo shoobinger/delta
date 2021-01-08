@@ -72,9 +72,6 @@ class CompletionTest : LanguageServerTest() {
     @Test
     fun `should take into account visibility modifiers`() {
         val workspaceRoot = createWorkspace("/test-projects/maven")
-        Files.walk(Paths.get(".").toAbsolutePath()).forEach {
-            println(it)
-        }
         val testClass = Files.createFile(
             workspaceRoot.resolve("src/main/kotlin/suive/delta/testproject/TestClass.kt")
         )
