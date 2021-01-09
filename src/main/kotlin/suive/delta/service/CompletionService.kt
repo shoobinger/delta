@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.cli.jvm.compiler.CliBindingTrace
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.cli.jvm.compiler.TopDownAnalyzerFacadeForJVM
+import org.jetbrains.kotlin.cli.jvm.config.addJvmClasspathRoots
 import org.jetbrains.kotlin.com.intellij.openapi.util.Disposer
 import org.jetbrains.kotlin.com.intellij.psi.PsiFileFactory
 import org.jetbrains.kotlin.com.intellij.psi.impl.PsiFileFactoryImpl
@@ -26,7 +27,7 @@ import org.jetbrains.kotlin.metadata.jvm.deserialization.JvmProtoBufUtil
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtReferenceExpression
-import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
+import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.LazyTopDownAnalyzer
 import org.jetbrains.kotlin.resolve.TopDownAnalysisMode
@@ -63,6 +64,7 @@ class CompletionService(
             put(CommonConfigurationKeys.MODULE_NAME, JvmProtoBufUtil.DEFAULT_MODULE_NAME)
             put(CommonConfigurationKeys.LANGUAGE_VERSION_SETTINGS, languageVersionSettings)
         }
+        configuration.addJvmClasspathRoots(workspace.classpath)
         val environment = KotlinCoreEnvironment.createForProduction(
             rootDisposable,
             configuration,
@@ -93,7 +95,7 @@ class CompletionService(
 
         val element = ktFile.findElementAt(getOffset(text, row, col)) ?: error("No element at point")
         val parent = element.parent
-        val callSite = element.parentsWithSelf
+        val callSite = element.parents
             .mapNotNull { bc[BindingContext.DECLARATION_TO_DESCRIPTOR, it] }
             .firstOrNull() ?: error("Call site can't be determined")
 
@@ -109,9 +111,13 @@ class CompletionService(
                             referenceTarget.type.memberScope.getContributedDescriptors().toList()
                         }
                         is ClassDescriptor -> {
-                            if (referenceTarget.hasCompanionObject) {
-                                (referenceTarget.companionObjectDescriptor as ClassDescriptorWithResolutionScopes).declaredCallableMembers
+                            val staticMembers = referenceTarget.staticScope.getContributedDescriptors()
+                            val companionObjectMembers = if (referenceTarget.hasCompanionObject) {
+                                (referenceTarget.companionObjectDescriptor as ClassDescriptorWithResolutionScopes)
+                                    .declaredCallableMembers
                             } else emptyList()
+
+                            staticMembers + companionObjectMembers
                         }
                         else -> getFromType()
                     }
@@ -133,7 +139,7 @@ class CompletionService(
                         val parameters = descriptor.valueParameters.joinToString(",") { "${it.name}: ${it.type}" }
                         val returnType = descriptor.returnType
                         val label = "$name($parameters): $returnType"
-                        val insertText = if (parameters.isEmpty()) "$name()" else "$name("
+                        val insertText = "$name()"
                         CompletionItem(label, insertText)
                     }
                     is PropertyDescriptor -> {

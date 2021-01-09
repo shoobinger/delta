@@ -46,7 +46,7 @@ class MembersCompletionTest : CompletionTest() {
                 .anySatisfy {
                     assertJson(it) {
                         node("label").asString().contains("methodWithParams(p: Int)")
-                        node("insertText").isEqualTo("methodWithParams(")
+                        node("insertText").isEqualTo("methodWithParams()")
                     }
                 }
                 .anySatisfy {
@@ -164,6 +164,7 @@ class MembersCompletionTest : CompletionTest() {
         Files.writeString(
             testClass, """
             package suive.delta.testproject
+            import java.util.Optional
             class A {
                 companion object {
                     fun method(): String {}
@@ -175,36 +176,19 @@ class MembersCompletionTest : CompletionTest() {
                 fun testMethod() {
                     A.
                 }
+                fun javaClass() {
+                    val a = Optional.
+                }
             }
         """.trimIndent()
         )
 
         testEditor.initialize(workspaceRoot)
 
-        // Completion request sent by the editor right after typing ".".
-        val response = testEditor.request(
-            "textDocument/completion", """{
-            "textDocument": { "uri": "${testClass.toUri()}" },
-            "position": { "line": 10, "character": 10 },
-            "context": {
-              "triggerKind": 2,
-              "triggerCharacter": "."
-            }
-        }""".trimIndent()
-        )
+        // Companion object members of a local class.
+//        testClass.assertCompletion(11, 10, listOf("method()", "prop"))
 
-        assertJson(response) {
-            node("result.items").isNotNull.isArray.hasSizeGreaterThan(1)
-                .anySatisfy {
-                    assertJson(it) {
-                        node("label").asString().contains("method()")
-                    }
-                }
-                .anySatisfy {
-                    assertJson(it) {
-                        node("label").asString().contains("prop")
-                    }
-                }
-        }
+        // Static methods of an imported Java class.
+        testClass.assertCompletion(14, 25, listOf("of"))
     }
 }

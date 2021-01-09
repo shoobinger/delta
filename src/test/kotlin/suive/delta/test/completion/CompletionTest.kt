@@ -1,5 +1,6 @@
 package suive.delta.test.completion
 
+import suive.delta.Json
 import suive.delta.test.LanguageServerTest
 import java.nio.file.Path
 
@@ -14,4 +15,23 @@ open class CompletionTest : LanguageServerTest() {
             }
         }""".trimIndent()
     )
+
+    protected fun assertCompletionItems(response: Json?, labels: List<String>) {
+        assertJson(response) {
+            val items = node("result.items").isNotNull.isArray.hasSizeGreaterThan(1)
+
+            for (label in labels) {
+                items.anySatisfy {
+                    assertJson(it) {
+                        node("label").asString().contains(label)
+                    }
+                }
+            }
+        }
+    }
+
+    protected fun Path.assertCompletion(line: Int, char: Int, labels: List<String>) {
+        val response = sendCompletionRequest(this, line, char)
+        assertCompletionItems(response, labels)
+    }
 }
