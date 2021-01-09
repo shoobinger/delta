@@ -15,17 +15,22 @@ import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
 import org.jetbrains.kotlin.container.get
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.ClassDescriptorWithResolutionScopes
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptorWithVisibility
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
+import org.jetbrains.kotlin.descriptors.impl.LocalVariableDescriptor
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.metadata.jvm.deserialization.JvmProtoBufUtil
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtReferenceExpression
 import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.LazyTopDownAnalyzer
 import org.jetbrains.kotlin.resolve.TopDownAnalysisMode
+import org.jetbrains.kotlin.resolve.descriptorUtil.hasCompanionObject
 import org.jetbrains.kotlin.resolve.lazy.declarations.FileBasedDeclarationProviderFactory
 import suive.delta.Workspace
 import suive.delta.model.CompletionItem
@@ -93,10 +98,26 @@ class CompletionService(
             .firstOrNull() ?: error("Call site can't be determined")
 
         val descriptors = if (parent is KtDotQualifiedExpression) {
-            bc.getType(parent.receiverExpression)
-                ?.memberScope
-                ?.getContributedDescriptors()
-                ?.toList().orEmpty()
+            val receiver = parent.receiverExpression
+
+            fun getFromType() = bc.getType(receiver)?.memberScope?.getContributedDescriptors() ?: emptyList()
+
+            when (receiver) {
+                is KtReferenceExpression -> {
+                    when (val referenceTarget = bc[BindingContext.REFERENCE_TARGET, receiver]) {
+                        is LocalVariableDescriptor -> {
+                            referenceTarget.type.memberScope.getContributedDescriptors().toList()
+                        }
+                        is ClassDescriptor -> {
+                            if (referenceTarget.hasCompanionObject) {
+                                (referenceTarget.companionObjectDescriptor as ClassDescriptorWithResolutionScopes).declaredCallableMembers
+                            } else emptyList()
+                        }
+                        else -> getFromType()
+                    }
+                }
+                else -> getFromType()
+            }
         } else emptyList()
 
         return CompletionResult(items = descriptors
@@ -106,23 +127,23 @@ class CompletionService(
                 } else true
             }
             .mapNotNull { descriptor ->
-            when (descriptor) {
-                is FunctionDescriptor -> {
-                    val name = descriptor.name
-                    val parameters = descriptor.valueParameters.joinToString(",") { "${it.name}: ${it.type}" }
-                    val returnType = descriptor.returnType
-                    val label = "$name($parameters): $returnType"
-                    val insertText = if (parameters.isEmpty()) "$name()" else "$name("
-                    CompletionItem(label, insertText)
+                when (descriptor) {
+                    is FunctionDescriptor -> {
+                        val name = descriptor.name
+                        val parameters = descriptor.valueParameters.joinToString(",") { "${it.name}: ${it.type}" }
+                        val returnType = descriptor.returnType
+                        val label = "$name($parameters): $returnType"
+                        val insertText = if (parameters.isEmpty()) "$name()" else "$name("
+                        CompletionItem(label, insertText)
+                    }
+                    is PropertyDescriptor -> {
+                        val name = descriptor.name
+                        val returnType = descriptor.returnType
+                        val label = "$name: $returnType"
+                        CompletionItem(label, name.toString())
+                    }
+                    else -> null
                 }
-                is PropertyDescriptor -> {
-                    val name = descriptor.name
-                    val returnType = descriptor.returnType
-                    val label = "$name: $returnType"
-                    CompletionItem(label, name.toString())
-                }
-                else -> null
-            }
-        })
+            })
     }
 }
