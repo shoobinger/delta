@@ -55,6 +55,12 @@ class MembersCompletionTest : CompletionTest() {
                         node("insertText").isEqualTo("prop")
                     }
                 }
+                .anySatisfy {
+                    assertJson(it) {
+                        node("label").asString().contains("toString(): String")
+                        node("insertText").isEqualTo("toString()")
+                    }
+                }
         }
     }
 
@@ -84,22 +90,7 @@ class MembersCompletionTest : CompletionTest() {
 
         testEditor.initialize(workspaceRoot)
 
-        // Completion request sent by the editor right after typing ".".
-        val response = sendCompletionRequest(testClass, 10, 10)
-
-        assertJson(response) {
-            node("result.items").isNotNull.isArray.hasSizeGreaterThan(1)
-                .noneSatisfy {
-                    assertJson(it) {
-                        node("label").asString().contains("prop")
-                    }
-                }
-                .noneSatisfy {
-                    assertJson(it) {
-                        node("label").asString().contains("method")
-                    }
-                }
-        }
+        testClass.assertCompletion(10, 10, listOf("prop", "method"))
     }
 
     @Test
@@ -132,27 +123,9 @@ class MembersCompletionTest : CompletionTest() {
 
         testEditor.initialize(workspaceRoot)
 
-        assertJson(sendCompletionRequest(testClass, 8, 12)) {
-            node("result.items").isNotNull.isArray.hasSizeGreaterThan(1).anySatisfy {
-                assertJson(it) {
-                    node("label").asString().contains("method()")
-                }
-            }
-        }
-        assertJson(sendCompletionRequest(testClass, 11, 11)) {
-            node("result.items").isNotNull.isArray.hasSizeGreaterThan(1).anySatisfy {
-                assertJson(it) {
-                    node("label").asString().contains("length")
-                }
-            }
-        }
-        assertJson(sendCompletionRequest(testClass, 14, 21)) {
-            node("result.items").isNotNull.isArray.hasSizeGreaterThan(1).anySatisfy {
-                assertJson(it) {
-                    node("label").asString().contains("length")
-                }
-            }
-        }
+        testClass.assertCompletion(8, 12, listOf("method()"))
+        testClass.assertCompletion(11, 11, listOf("length"))
+        testClass.assertCompletion(14, 21, listOf("length"))
     }
 
     @Test
@@ -186,7 +159,7 @@ class MembersCompletionTest : CompletionTest() {
         testEditor.initialize(workspaceRoot)
 
         // Companion object members of a local class.
-//        testClass.assertCompletion(11, 10, listOf("method()", "prop"))
+        testClass.assertCompletion(11, 10, listOf("method()", "prop"))
 
         // Static methods of an imported Java class.
         testClass.assertCompletion(14, 25, listOf("of"))
