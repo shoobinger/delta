@@ -20,7 +20,6 @@ import org.jetbrains.kotlin.container.ComponentProvider
 import org.jetbrains.kotlin.container.get
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
-import org.jetbrains.kotlin.descriptors.DeclarationDescriptorWithVisibility
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
@@ -35,6 +34,7 @@ import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtSimpleNameExpression
+import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.LazyTopDownAnalyzer
 import org.jetbrains.kotlin.resolve.TopDownAnalysisMode
@@ -91,10 +91,13 @@ class CompletionService(
 
         val file = workspace.toInternalPath(fileUri)
         val text = Files.readString(file)
+        val offset = getOffset(text, row, col)
+        val modifiedText = text.substring(0, offset) + "COMPLETION_SUBSTITUTE" + text.substring(offset)
+
         val ktFile = psiFileFactory.createFileFromText(
             file.fileName.toString(),
             KotlinFileType.INSTANCE,
-            text
+            modifiedText
         ) as KtFile
 
         // TODO this should be saved and updated after each rebuild.
@@ -111,8 +114,9 @@ class CompletionService(
         analyzer.analyzeDeclarations(TopDownAnalysisMode.TopLevelDeclarations, listOf(ktFile))
         val bc = trace.bindingContext
 
-        var element = ktFile.findElementAt(getOffset(text, row, col)) ?: error("No element at point")
-        // TODO Fake element should be inserted after '.' and passed to referenceVariants
+        val element = ktFile.findElementAt(offset)?.let { el ->
+            el.parentsWithSelf.find { it is KtExpression }
+        } ?: error("No element at point")
 
         val descriptors = (referenceVariants(container, bc, moduleDescriptor, element, environment)
             ?: referenceVariants(container, bc, moduleDescriptor, element.parent, environment))
@@ -190,15 +194,15 @@ class CompletionService(
         private val resolutionFacade: KotlinResolutionFacade
     ) : (DeclarationDescriptor) -> Boolean {
         override fun invoke(descriptor: DeclarationDescriptor): Boolean {
-           /*
-            if (descriptor is TypeParameterDescriptor && !isTypeParameterVisible(descriptor)) return false
+            /*
+             if (descriptor is TypeParameterDescriptor && !isTypeParameterVisible(descriptor)) return false
 
-            if (descriptor is DeclarationDescriptorWithVisibility) {
-                return descriptor.isVisible(element, null, bindingContext, resolutionFacade)
-            }
+             if (descriptor is DeclarationDescriptorWithVisibility) {
+                 return descriptor.isVisible(element, null, bindingContext, resolutionFacade)
+             }
 
-            if (descriptor.isInternalImplementationDetail()) return false
-*/
+             if (descriptor.isInternalImplementationDetail()) return false
+ */
             return true
         }
 

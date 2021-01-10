@@ -67,7 +67,7 @@ class MethodDispatcher(
             methodName = "textDocument/completion",
             paramsClass = CompletionParams::class,
             action = { r, p ->
-                val completions = completionService.getCompletions(p.textDocument.uri, p.position.line, p.position.character - 1)
+                val completions = completionService.getCompletions(p.textDocument.uri, p.position.line, p.position.character)
                 senderService.sendResponse(r.requestId, completions)
             }
         )
