@@ -33,6 +33,9 @@ dependencies {
     // Kotlin Compiler.
     implementation("org.jetbrains.kotlin:kotlin-compiler:$kotlinVersion")
     implementation("org.jetbrains.kotlin:ide-common-ij201:$kotlinVersion")
+//    implementation("org.jetbrains.kotlin:kotlin-plugin-ij201:$kotlinVersion") {
+//        this.isTransitive = false
+//    }
 
     // Maven.
     implementation("org.apache.maven:maven-core:3.0.4")
@@ -51,7 +54,8 @@ dependencies {
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     kotlinOptions.freeCompilerArgs = listOf(
-        "-Xuse-experimental=kotlin.contracts.ExperimentalContracts"
+        "-Xuse-experimental=kotlin.contracts.ExperimentalContracts",
+        "-Xopt-in=kotlin.RequiresOptIn"
     )
     kotlinOptions.jvmTarget = "1.8"
 }
