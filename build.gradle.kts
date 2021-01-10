@@ -1,6 +1,7 @@
+val kotlinVersion: String = "1.4.20-release-327"
+
 plugins {
-    groovy
-    kotlin("jvm") version "1.4.21"
+    kotlin("jvm").version("1.4.20-release-327")
     idea
     application
 }
@@ -10,6 +11,7 @@ version = "0.1.1"
 
 repositories {
     mavenCentral()
+    maven("https://cache-redirector.jetbrains.com/kotlin.bintray.com/kotlin-plugin")
     mavenLocal()
 }
 
@@ -29,7 +31,8 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
     // Kotlin Compiler.
-    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:1.4.21")
+    implementation("org.jetbrains.kotlin:kotlin-compiler:$kotlinVersion")
+    implementation("org.jetbrains.kotlin:ide-common-ij201:$kotlinVersion")
 
     // Maven.
     implementation("org.apache.maven:maven-core:3.0.4")

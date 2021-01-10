@@ -90,7 +90,20 @@ class MembersCompletionTest : CompletionTest() {
 
         testEditor.initialize(workspaceRoot)
 
-        testClass.assertCompletion(10, 10, listOf("prop", "method"))
+        val response = sendCompletionRequest(testClass, 10, 10)
+        assertJson(response) {
+            node("result.items").isNotNull.isArray.hasSizeGreaterThan(1)
+                .noneSatisfy {
+                    assertJson(it) {
+                        node("label").asString().contains("method")
+                    }
+                }
+                .noneSatisfy {
+                    assertJson(it) {
+                        node("label").asString().contains("prop")
+                    }
+                }
+        }
     }
 
     @Test
