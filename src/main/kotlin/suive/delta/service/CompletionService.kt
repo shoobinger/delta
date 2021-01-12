@@ -20,6 +20,7 @@ import org.jetbrains.kotlin.container.ComponentProvider
 import org.jetbrains.kotlin.container.get
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
+import org.jetbrains.kotlin.descriptors.DeclarationDescriptorWithVisibility
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
@@ -41,12 +42,15 @@ import org.jetbrains.kotlin.resolve.TopDownAnalysisMode
 import org.jetbrains.kotlin.resolve.lazy.declarations.FileBasedDeclarationProviderFactory
 import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter
 import org.jetbrains.kotlin.resolve.scopes.MemberScope
+import org.tinylog.kotlin.Logger
 import suive.delta.Workspace
 import suive.delta.model.CompletionItem
 import suive.delta.model.CompletionResult
 import suive.delta.util.DiagnosticMessageCollector
 import suive.delta.util.getOffset
 import java.nio.file.Files
+import kotlin.system.measureTimeMillis
+import kotlin.time.measureTimedValue
 
 class CompletionService(
     private val workspace: Workspace
@@ -94,11 +98,14 @@ class CompletionService(
         val offset = getOffset(text, row, col)
         val modifiedText = text.substring(0, offset) + "COMPLETION_SUBSTITUTE" + text.substring(offset)
 
-        val ktFile = psiFileFactory.createFileFromText(
-            file.fileName.toString(),
-            KotlinFileType.INSTANCE,
-            modifiedText
-        ) as KtFile
+        val (ktFile, parseTime) = measureTimedValue {
+            psiFileFactory.createFileFromText(
+                file.fileName.toString(),
+                KotlinFileType.INSTANCE,
+                modifiedText
+            ) as KtFile
+        }
+        Logger.info { "Parsed ${file.fileName} in $parseTime" }
 
         // TODO this should be saved and updated after each rebuild.
         val container = TopDownAnalyzerFacadeForJVM.createContainer(
@@ -111,27 +118,35 @@ class CompletionService(
         )
         val analyzer = container.get<LazyTopDownAnalyzer>()
         val moduleDescriptor = container.get<ModuleDescriptor>()
-        analyzer.analyzeDeclarations(TopDownAnalysisMode.TopLevelDeclarations, listOf(ktFile))
+
+        val analysisTime = measureTimeMillis {
+            analyzer.analyzeDeclarations(TopDownAnalysisMode.TopLevelDeclarations, listOf(ktFile))
+        }
+        Logger.info { "Analyzed ${file.fileName} in ${analysisTime}ms" }
         val bc = trace.bindingContext
 
         val element = ktFile.findElementAt(offset)?.let { el ->
             el.parentsWithSelf.find { it is KtExpression }
         } ?: error("No element at point")
 
-        val descriptors = (referenceVariants(container, bc, moduleDescriptor, element, environment)
-            ?: referenceVariants(container, bc, moduleDescriptor, element.parent, environment))
-            ?: when (val parent = element.parent) {
-                is KtQualifiedExpression -> {
-                    val type = bc[BindingContext.EXPRESSION_TYPE_INFO, parent.receiverExpression]?.type
-                    type?.memberScope?.getContributedDescriptors(
-                        DescriptorKindFilter.ALL,
-                        MemberScope.ALL_NAME_FILTER
-                    ) ?: emptyList()
+        val (descriptors, descriptorsTime) = measureTimedValue {
+            (referenceVariants(container, bc, moduleDescriptor, element, environment)
+                ?: referenceVariants(container, bc, moduleDescriptor, element.parent, environment))
+                ?: when (val parent = element.parent) {
+                    is KtQualifiedExpression -> {
+                        val type = bc[BindingContext.EXPRESSION_TYPE_INFO, parent.receiverExpression]?.type
+                        type?.memberScope?.getContributedDescriptors(
+                            DescriptorKindFilter.ALL,
+                            MemberScope.ALL_NAME_FILTER
+                        ) ?: emptyList()
+                    }
+                    else -> bc.get(BindingContext.LEXICAL_SCOPE, element as KtExpression)
+                        ?.getContributedDescriptors(DescriptorKindFilter.ALL, MemberScope.ALL_NAME_FILTER)
+                        ?.toList() ?: emptyList()
                 }
-                else -> bc.get(BindingContext.LEXICAL_SCOPE, element as KtExpression)
-                    ?.getContributedDescriptors(DescriptorKindFilter.ALL, MemberScope.ALL_NAME_FILTER)
-                    ?.toList() ?: emptyList()
-            }
+        }
+        Logger.info { "Found descriptors for $element in $descriptorsTime" }
+
         return CompletionResult(items = descriptors.mapNotNull { descriptor ->
             when (descriptor) {
                 is FunctionDescriptor -> {
@@ -176,8 +191,8 @@ class CompletionService(
                 visibilityFilter = VisibilityFilter(inDescriptor, bindingContext, element, resolutionFacade)
             ).getReferenceVariants(
                 expression = element,
-                kindFilter = DescriptorKindFilter.ALL,
-                nameFilter = { true },
+                kindFilter = DescriptorKindFilter.CALLABLES,
+                nameFilter = { !it.isSpecial },
                 filterOutJavaGettersAndSetters = true,
                 filterOutShadowed = true,
                 excludeNonInitializedVariable = true,
@@ -194,7 +209,6 @@ class CompletionService(
         private val resolutionFacade: KotlinResolutionFacade
     ) : (DeclarationDescriptor) -> Boolean {
         override fun invoke(descriptor: DeclarationDescriptor): Boolean {
-            /*
              if (descriptor is TypeParameterDescriptor && !isTypeParameterVisible(descriptor)) return false
 
              if (descriptor is DeclarationDescriptorWithVisibility) {
@@ -202,7 +216,7 @@ class CompletionService(
              }
 
              if (descriptor.isInternalImplementationDetail()) return false
- */
+
             return true
         }
 
