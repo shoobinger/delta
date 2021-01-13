@@ -7,6 +7,9 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.net.Socket
 import java.nio.file.Path
+import java.util.concurrent.BlockingQueue
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
@@ -25,7 +28,7 @@ class TestEditor(private val port: Int) {
 
     private val responses: BlockingMap<Int, Json> = BlockingMap()
     private val requests: BlockingMap<String, Json> = BlockingMap()
-    private val notifications: BlockingMap<String, Json> = BlockingMap()
+    private val notifications = ConcurrentHashMap<String, BlockingQueue<Json>>()
 
     companion object {
         const val GET_NOTIFICATION_TIMEOUT_SEC = 15L
@@ -47,7 +50,11 @@ class TestEditor(private val port: Int) {
                     val message = objectMapper.readValue<Map<*, *>>(it)
                     when {
                         message["method"] != null && message["id"] != null -> requests[message["method"] as String] = it
-                        message["method"] != null -> notifications[message["method"] as String] = it
+                        message["method"] != null -> notifications.compute(message["method"] as String) { _, q ->
+                            val queue = (q ?: LinkedBlockingQueue())
+                            queue.offer(it)
+                            queue
+                        }
                         message["id"] != null -> responses[message["id"] as Int] = it
                         else -> error("Unknown message received")
                     }
@@ -67,9 +74,8 @@ class TestEditor(private val port: Int) {
 
     fun getRequest(method: String) = requests[method]
 
-    fun getNotification(method: String, timeout: Long = GET_NOTIFICATION_TIMEOUT_SEC): Json? {
-        return notifications.get(method, timeout, TimeUnit.SECONDS)
-    }
+    fun getNotification(method: String, timeout: Long = GET_NOTIFICATION_TIMEOUT_SEC): Json? =
+        notifications.computeIfAbsent(method) { LinkedBlockingQueue() }.poll(timeout, TimeUnit.SECONDS)
 
     fun request(method: String, params: String): Json? {
         val messageId = send(method, params)

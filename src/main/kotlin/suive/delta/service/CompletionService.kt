@@ -43,9 +43,12 @@ import org.jetbrains.kotlin.resolve.lazy.declarations.FileBasedDeclarationProvid
 import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter
 import org.jetbrains.kotlin.resolve.scopes.MemberScope
 import org.tinylog.kotlin.Logger
+import suive.delta.Request
 import suive.delta.Workspace
+import suive.delta.executeTimed
 import suive.delta.model.CompletionItem
 import suive.delta.model.CompletionResult
+import suive.delta.model.ProgressParams
 import suive.delta.util.DiagnosticMessageCollector
 import suive.delta.util.getOffset
 import java.nio.file.Files
@@ -53,7 +56,8 @@ import kotlin.system.measureTimeMillis
 import kotlin.time.measureTimedValue
 
 class CompletionService(
-    private val workspace: Workspace
+    private val workspace: Workspace,
+    private val senderService: SenderService
 ) {
     private val excludedFromCompletion: List<String> = listOf(
         "kotlin.jvm.internal",
@@ -65,7 +69,7 @@ class CompletionService(
     )
 
     // TODO refactor this long method.
-    fun getCompletions(fileUri: String, row: Int, col: Int): CompletionResult {
+    fun sendCompletions(request: Request, fileUri: String, row: Int, col: Int, partialResultToken: String? = null) {
         val trace = CliBindingTrace()
         val rootDisposable = Disposer.newDisposable()
         val configuration = CompilerConfiguration().apply {
@@ -129,43 +133,84 @@ class CompletionService(
             el.parentsWithSelf.find { it is KtExpression }
         } ?: error("No element at point")
 
-        val (descriptors, descriptorsTime) = measureTimedValue {
+        fun basicCompletions(): Collection<DeclarationDescriptor> = executeTimed("basicCompletions") {
+            when (val parent = element.parent) {
+                is KtQualifiedExpression -> {
+                    descriptorsFromType(bc, parent.receiverExpression)
+                }
+                else -> bc.get(BindingContext.LEXICAL_SCOPE, element as KtExpression)
+                    ?.getContributedDescriptors(DescriptorKindFilter.ALL, MemberScope.ALL_NAME_FILTER)
+                    ?.toList() ?: emptyList()
+            }
+        }
+
+        fun referenceVariants(): List<DeclarationDescriptor>? = executeTimed("referenceVariants") {
             (referenceVariants(container, bc, moduleDescriptor, element, environment)
                 ?: referenceVariants(container, bc, moduleDescriptor, element.parent, environment))
-                ?: when (val parent = element.parent) {
-                    is KtQualifiedExpression -> {
-                        val type = bc[BindingContext.EXPRESSION_TYPE_INFO, parent.receiverExpression]?.type
-                        type?.memberScope?.getContributedDescriptors(
-                            DescriptorKindFilter.ALL,
-                            MemberScope.ALL_NAME_FILTER
-                        ) ?: emptyList()
-                    }
-                    else -> bc.get(BindingContext.LEXICAL_SCOPE, element as KtExpression)
-                        ?.getContributedDescriptors(DescriptorKindFilter.ALL, MemberScope.ALL_NAME_FILTER)
-                        ?.toList() ?: emptyList()
-                }
         }
-        Logger.info { "Found descriptors for $element in $descriptorsTime" }
 
-        return CompletionResult(items = descriptors.mapNotNull { descriptor ->
-            when (descriptor) {
-                is FunctionDescriptor -> {
-                    val name = descriptor.name
-                    val parameters = descriptor.valueParameters.joinToString(",") { "${it.name}: ${it.type}" }
-                    val returnType = descriptor.returnType
-                    val label = "$name($parameters): $returnType"
-                    val insertText = "$name()"
-                    CompletionItem(label, insertText)
-                }
-                is PropertyDescriptor -> {
-                    val name = descriptor.name
-                    val returnType = descriptor.returnType
-                    val label = "$name: $returnType"
-                    CompletionItem(label, name.toString())
-                }
-                else -> null
+        if (partialResultToken != null) {
+            // Client requested partial results.
+            // Send basic completions right away.
+            senderService.sendNotification(
+                "$/progress",
+                ProgressParams(
+                    partialResultToken,
+                    CompletionResult(true, basicCompletions().mapNotNull(::descriptorToItem))
+                )
+            )
+
+            // Compute and send more costly reference variants.
+            val referenceVariants = referenceVariants()
+            if (referenceVariants != null) {
+                senderService.sendNotification(
+                    "$/progress", ProgressParams(
+                        partialResultToken, CompletionResult(
+                            true, referenceVariants.mapNotNull(::descriptorToItem)
+                        )
+                    )
+                )
             }
-        })
+
+            senderService.sendResponse(request.requestId, CompletionResult(items = emptyList()))
+        } else {
+            // Send everything in the request response.
+            val descriptors = referenceVariants() ?: basicCompletions()
+            senderService.sendResponse(
+                request.requestId,
+                CompletionResult(items = descriptors.mapNotNull(this::descriptorToItem))
+            )
+        }
+    }
+
+    private fun descriptorToItem(descriptor: DeclarationDescriptor): CompletionItem? =
+        when (descriptor) {
+            is FunctionDescriptor -> {
+                val name = descriptor.name
+                val parameters = descriptor.valueParameters.joinToString(",") { "${it.name}: ${it.type}" }
+                val returnType = descriptor.returnType
+                val label = "$name($parameters): $returnType"
+                val insertText = "$name()"
+                CompletionItem(label, insertText)
+            }
+            is PropertyDescriptor -> {
+                val name = descriptor.name
+                val returnType = descriptor.returnType
+                val label = "$name: $returnType"
+                CompletionItem(label, name.toString())
+            }
+            else -> null
+        }
+
+    private fun descriptorsFromType(
+        bc: BindingContext,
+        receiverExpression: KtExpression
+    ): Collection<DeclarationDescriptor> {
+        val type = bc[BindingContext.EXPRESSION_TYPE_INFO, receiverExpression]?.type
+        return type?.memberScope?.getContributedDescriptors(
+            DescriptorKindFilter.ALL,
+            MemberScope.ALL_NAME_FILTER
+        ) ?: emptyList()
     }
 
     private fun referenceVariants(
@@ -209,13 +254,13 @@ class CompletionService(
         private val resolutionFacade: KotlinResolutionFacade
     ) : (DeclarationDescriptor) -> Boolean {
         override fun invoke(descriptor: DeclarationDescriptor): Boolean {
-             if (descriptor is TypeParameterDescriptor && !isTypeParameterVisible(descriptor)) return false
+            if (descriptor is TypeParameterDescriptor && !isTypeParameterVisible(descriptor)) return false
 
-             if (descriptor is DeclarationDescriptorWithVisibility) {
-                 return descriptor.isVisible(element, null, bindingContext, resolutionFacade)
-             }
+            if (descriptor is DeclarationDescriptorWithVisibility) {
+                return descriptor.isVisible(element, null, bindingContext, resolutionFacade)
+            }
 
-             if (descriptor.isInternalImplementationDetail()) return false
+            if (descriptor.isInternalImplementationDetail()) return false
 
             return true
         }

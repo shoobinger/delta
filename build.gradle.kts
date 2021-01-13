@@ -1,4 +1,6 @@
 val kotlinVersion: String = "1.4.20-release-327"
+val tinylogVersion: String = "2.2.1"
+val jacksonVersion: String = "2.12.0"
 
 plugins {
     kotlin("jvm").version("1.4.20-release-327")
@@ -20,22 +22,19 @@ dependencies {
     implementation(kotlin("stdlib"))
 
     // Logging.
-    implementation("org.tinylog:tinylog-api:2.2.1")
-    implementation("org.tinylog:tinylog-impl:2.2.1")
-    implementation("org.tinylog:tinylog-api-kotlin:2.2.1")
-    implementation("org.tinylog:slf4j-tinylog:2.2.1")
+    implementation("org.tinylog:tinylog-api:$tinylogVersion")
+    implementation("org.tinylog:tinylog-impl:$tinylogVersion")
+    implementation("org.tinylog:tinylog-api-kotlin:$tinylogVersion")
+    implementation("org.tinylog:slf4j-tinylog:$tinylogVersion")
 
     // Serialization.
-    implementation(platform("com.fasterxml.jackson:jackson-bom:2.12.0"))
+    implementation(platform("com.fasterxml.jackson:jackson-bom:$jacksonVersion"))
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
     // Kotlin Compiler.
     implementation("org.jetbrains.kotlin:kotlin-compiler:$kotlinVersion")
     implementation("org.jetbrains.kotlin:ide-common-ij201:$kotlinVersion")
-//    implementation("org.jetbrains.kotlin:kotlin-plugin-ij201:$kotlinVersion") {
-//        this.isTransitive = false
-//    }
 
     // Maven.
     implementation("org.apache.maven:maven-core:3.0.4")

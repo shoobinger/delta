@@ -3,9 +3,7 @@ package suive.delta
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import suive.delta.model.CompletionItem
 import suive.delta.model.CompletionParams
-import suive.delta.model.CompletionResult
 import suive.delta.model.DidChangeTextDocumentParams
 import suive.delta.model.DidChangeWatchedFilesParams
 import suive.delta.model.InitializeParams
@@ -29,7 +27,7 @@ class MethodDispatcher(
     private val workspace = Workspace(senderService)
     private val taskService = TaskService()
     private val workspaceService = WorkspaceService(mavenClasspathCollector, workspace, taskService, senderService)
-    private val completionService = CompletionService(workspace)
+    private val completionService = CompletionService(workspace, senderService)
 
     private val paramsConverter = ObjectMapper().apply {
         registerModule(KotlinModule())
@@ -67,8 +65,13 @@ class MethodDispatcher(
             methodName = "textDocument/completion",
             paramsClass = CompletionParams::class,
             action = { r, p ->
-                val completions = completionService.getCompletions(p.textDocument.uri, p.position.line, p.position.character)
-                senderService.sendResponse(r.requestId, completions)
+                completionService.sendCompletions(
+                    request = r,
+                    fileUri = p.textDocument.uri,
+                    row = p.position.line,
+                    col = p.position.character,
+                    partialResultToken = p.partialResultToken
+                )
             }
         )
     )
