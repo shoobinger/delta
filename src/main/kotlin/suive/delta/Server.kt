@@ -1,16 +1,22 @@
 package suive.delta
 
+import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.tinylog.kotlin.Logger
+import suive.delta.model.InvalidRequest
 import suive.delta.model.NoParams
+import suive.delta.model.ParseError
 import suive.delta.model.transport.Message
+import suive.delta.model.transport.ResponseError
 import suive.delta.model.transport.ResponseMessage
 import suive.delta.model.transport.WithId
 import suive.delta.model.transport.WithMethod
 import suive.delta.model.transport.WithParams
+import suive.delta.service.SenderService
+import suive.delta.util.InvalidRequestException
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -20,13 +26,26 @@ open class Server(private val inputStream: InputStream, private val outputStream
         configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     }
 
+    private val senderService = SenderService(outputStream, jsonConverter)
+
     fun start() {
-        val methodDispatcher = MethodDispatcher(outputStream, jsonConverter)
+        val methodDispatcher = MethodDispatcher(senderService)
 
         Logger.info { "Started server" }
-        for (i in processStream(inputStream)) {
+        for (input in processStream(inputStream)) {
             try {
-                val message = jsonConverter.readValue<Message>(i)
+                Logger.trace { "Incoming message [$input]" }
+                val message = try {
+                    jsonConverter.readValue<Message>(input)
+                } catch (e: JsonParseException) {
+                    Logger.error(e) { "Can't parse incoming message [$input]" }
+                    senderService.send(ResponseMessage.Error(-1, ResponseError(ParseError, e.message ?: "N/A")))
+                    continue
+                } catch (e: InvalidRequestException) {
+                    Logger.error(e) { "Invalid JSON-RPC request [$input]" }
+                    senderService.send(ResponseMessage.Error(-1, ResponseError(InvalidRequest, e.message ?: "N/A")))
+                    continue
+                }
                 Logger.info { "Message received: $message" }
 
                 if (message is ResponseMessage) continue

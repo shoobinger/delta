@@ -86,7 +86,7 @@ class TestEditor(private val port: Int) {
         send(method, params)
     }
 
-    protected fun send(method: String, params: String): Int {
+    fun send(method: String, params: String): Int {
         val id = messageId.getAndIncrement()
         val message = """
             {
@@ -97,8 +97,12 @@ class TestEditor(private val port: Int) {
             }
         """.trimIndent()
 
-        outputStream.write("Content-Length: ${message.length}\r\n\r\n$message".toByteArray())
+        write(message)
         return id
+    }
+
+    fun write(message: String) {
+        outputStream.write("Content-Length: ${message.length}\r\n\r\n$message".toByteArray())
     }
 
     fun stopSession() {
@@ -106,51 +110,4 @@ class TestEditor(private val port: Int) {
             client.close()
         }
     }
-/*
-
-    void editFile(Path path, String content) {
-        Object oldContent = Files.readString(path)
-        Object newContent = content.stripIndent(true).trim()
-        Object minLength = Math.min(newContent.length(), oldContent.length())
-
-        Object rangeStart = 0
-        Object lineStart = 0
-        Object charStart = 0
-        for (i in 0..<minLength) {
-            if (oldContent[i] == newContent[i]) {
-                rangeStart++
-                charStart++
-                if (oldContent[i] == '\n') {
-                    charStart = 0
-                    lineStart++
-                }
-            } else {
-                break
-            }
-        }
-
-        Object rangeEnd = 0
-        Object lineEnd = 0
-        Object charEnd = 0
-        for (i in 0..<minLength) {
-            if (oldContent[oldContent.length() - i - 1] == newContent[newContent.length() - i - 1]) {
-                rangeEnd++
-                charEnd++
-                if (oldContent[oldContent.length() - i - 1] == '\n') {
-                    charEnd = 0
-                    lineEnd++
-                }
-            } else {
-                lineEnd = oldContent.readLines().size() - lineEnd - 1
-                charEnd = oldContent.readLines()[lineEnd].size() - charEnd
-                rangeEnd = oldContent.size() - rangeEnd
-                break
-            }
-        }
-
-        Object text = oldContent.substring(rangeStart, rangeEnd)
-        print("a")
-    }
-*/
-
 }

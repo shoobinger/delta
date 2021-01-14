@@ -13,7 +13,7 @@ class MessageDeserializer : StdDeserializer<Message>(Message::class.java) {
     override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Message {
         val root = p.readValueAsTree<TreeNode>()
         if (!root.isObject) {
-            throw IllegalArgumentException("Root node is not an object.")
+            throw InvalidRequestException("Root node is not an object.")
         }
 
         val fieldNames = root.fieldNames().asSequence().toSet()
@@ -21,7 +21,7 @@ class MessageDeserializer : StdDeserializer<Message>(Message::class.java) {
             fieldNames.containsAll(listOf("id", "method")) -> p.codec.treeToValue(root, RequestMessage::class.java)
             fieldNames.contains("id") -> p.codec.treeToValue(root, ResponseMessage.Success::class.java)
             fieldNames.contains("method") -> p.codec.treeToValue(root, NotificationMessage::class.java)
-            else -> throw IllegalStateException("Can't deserialize message")
+            else -> throw InvalidRequestException("Can't deserialize message")
         };
     }
 }
