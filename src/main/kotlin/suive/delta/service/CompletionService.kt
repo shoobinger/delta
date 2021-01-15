@@ -184,7 +184,7 @@ class CompletionService(
         when (descriptor) {
             is FunctionDescriptor -> {
                 val name = descriptor.name
-                val parameters = descriptor.valueParameters.joinToString(",") { "${it.name}: ${it.type}" }
+                val parameters = descriptor.valueParameters.joinToString(", ") { "${it.name}: ${it.type}" }
                 val returnType = descriptor.returnType
                 val label = "$name($parameters): $returnType"
                 val insertText = "$name()"
