@@ -7,6 +7,6 @@ fun getTempDir(): String = System.getenv("TEMP_DIR") ?: System.getProperty("java
 
 inline fun <T> executeTimed(operation: String, block: () -> T): T {
     val (result, time) = measureTimedValue(block)
-    Logger.info { "Executed $operation for in $time" }
+    Logger.debug { "Executed [$operation] for in $time" }
     return result
 }

@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
 import org.jetbrains.kotlin.container.ComponentProvider
 import org.jetbrains.kotlin.container.get
+import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptorWithVisibility
@@ -25,6 +26,7 @@ import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
 import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor
+import org.jetbrains.kotlin.descriptors.impl.LocalVariableDescriptor
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.codeInsight.ReferenceVariantsHelper
 import org.jetbrains.kotlin.idea.imports.importableFqName
@@ -42,7 +44,6 @@ import org.jetbrains.kotlin.resolve.TopDownAnalysisMode
 import org.jetbrains.kotlin.resolve.lazy.declarations.FileBasedDeclarationProviderFactory
 import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter
 import org.jetbrains.kotlin.resolve.scopes.MemberScope
-import org.tinylog.kotlin.Logger
 import suive.delta.Request
 import suive.delta.Workspace
 import suive.delta.executeTimed
@@ -52,8 +53,6 @@ import suive.delta.model.ProgressParams
 import suive.delta.util.DiagnosticMessageCollector
 import suive.delta.util.getOffset
 import java.nio.file.Files
-import kotlin.system.measureTimeMillis
-import kotlin.time.measureTimedValue
 
 class CompletionService(
     private val workspace: Workspace,
@@ -102,14 +101,13 @@ class CompletionService(
         val offset = getOffset(text, row, col)
         val modifiedText = text.substring(0, offset) + "COMPLETION_SUBSTITUTE" + text.substring(offset)
 
-        val (ktFile, parseTime) = measureTimedValue {
+        val ktFile = executeTimed("parse ${file.fileName}") {
             psiFileFactory.createFileFromText(
                 file.fileName.toString(),
                 KotlinFileType.INSTANCE,
                 modifiedText
             ) as KtFile
         }
-        Logger.info { "Parsed ${file.fileName} in $parseTime" }
 
         // TODO this should be saved and updated after each rebuild.
         val container = TopDownAnalyzerFacadeForJVM.createContainer(
@@ -123,10 +121,9 @@ class CompletionService(
         val analyzer = container.get<LazyTopDownAnalyzer>()
         val moduleDescriptor = container.get<ModuleDescriptor>()
 
-        val analysisTime = measureTimeMillis {
+        executeTimed("analysis of ${file.fileName}") {
             analyzer.analyzeDeclarations(TopDownAnalysisMode.TopLevelDeclarations, listOf(ktFile))
         }
-        Logger.info { "Analyzed ${file.fileName} in ${analysisTime}ms" }
         val bc = trace.bindingContext
 
         val element = ktFile.findElementAt(offset)?.let { el ->
@@ -193,7 +190,8 @@ class CompletionService(
                 val insertText = "$name()"
                 CompletionItem(label, insertText)
             }
-            is PropertyDescriptor -> {
+            is PropertyDescriptor, is LocalVariableDescriptor -> {
+                descriptor as CallableDescriptor
                 val name = descriptor.name
                 val returnType = descriptor.returnType
                 val label = "$name: $returnType"
@@ -236,7 +234,7 @@ class CompletionService(
                 visibilityFilter = VisibilityFilter(inDescriptor, bindingContext, element, resolutionFacade)
             ).getReferenceVariants(
                 expression = element,
-                kindFilter = DescriptorKindFilter.CALLABLES,
+                kindFilter = DescriptorKindFilter.ALL,
                 nameFilter = { !it.isSpecial },
                 filterOutJavaGettersAndSetters = true,
                 filterOutShadowed = true,

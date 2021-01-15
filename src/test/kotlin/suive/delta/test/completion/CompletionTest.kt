@@ -23,7 +23,7 @@ open class CompletionTest : LanguageServerTest() {
 
     protected fun assertCompletionResponse(response: Any?, labels: List<String>) {
         assertJson(response) {
-            val items = node("result.items").isNotNull.isArray.hasSizeGreaterThan(1)
+            val items = node("result.items").isNotNull.isArray
             assertCompletionItems(items, labels)
         }
     }

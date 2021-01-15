@@ -20,7 +20,6 @@ import java.nio.file.Paths
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
-import kotlin.system.measureTimeMillis
 
 class Workspace(
     private val senderService: SenderService
@@ -130,7 +129,7 @@ class Workspace(
 
                 Logger.debug { "Compiler starting. classpath: ${args.classpath}" }
 
-                measureTimeMillis {
+                executeTimed("make incrementally") {
                     makeIncrementally(
                         cacheDir.toFile(),
                         listOf(srcDir.toFile()),
