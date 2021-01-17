@@ -12,9 +12,9 @@ class GlobalSearchService(
 
     fun indexClasses() {
         ClassGraph()
-            .verbose()
-            .enableSystemJarsAndModules()
-//            .overrideClasspath(workspace.classpath)
+//            .verbose()
+//            .enableSystemJarsAndModules()
+            .overrideClasspath(workspace.classpath)
 //            .also { classGraph ->
 //                Logger.info{workspace.classpath.toString()}
 //                workspace.classpath.forEach {

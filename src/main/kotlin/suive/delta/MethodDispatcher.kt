@@ -16,7 +16,7 @@ import suive.delta.model.transport.ResponseError
 import suive.delta.model.transport.ResponseMessage
 import suive.delta.service.CompletionService
 import suive.delta.service.GlobalSearchService
-import suive.delta.service.MavenClasspathCollector
+import suive.delta.service.MavenHelper
 import suive.delta.service.SenderService
 import suive.delta.service.TaskService
 import suive.delta.service.WorkspaceService
@@ -28,7 +28,7 @@ import kotlin.reflect.KClass
 class MethodDispatcher(
     private val senderService: SenderService
 ) {
-    private val mavenClasspathCollector = MavenClasspathCollector()
+    private val mavenClasspathCollector = MavenHelper()
     private val workspace = Workspace(senderService)
     private val taskService = TaskService()
     private val globalSearchService = GlobalSearchService(workspace)

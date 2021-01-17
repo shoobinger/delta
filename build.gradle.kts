@@ -36,13 +36,6 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-compiler:$kotlinVersion")
     implementation("org.jetbrains.kotlin:ide-common-ij201:$kotlinVersion")
 
-    // Maven.
-    implementation("org.apache.maven:maven-core:3.0.4")
-    implementation("com.jcabi:jcabi-aether:0.10.1") {
-        exclude("org.kuali.maven.wagons")
-        exclude("org.hibernate")
-    }
-
     // Classpath scanning.
     implementation("io.github.classgraph:classgraph:4.8.98")
 

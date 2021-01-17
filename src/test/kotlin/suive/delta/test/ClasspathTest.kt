@@ -6,6 +6,7 @@ import java.nio.file.Files
 
 class ClasspathTest : LanguageServerTest() {
     @Test
+    // TODO this test is incorrect
     fun `should resolve classpath from Maven pom`() {
         val workspaceRoot = createWorkspace("/test-projects/maven")
         val testClass = Files.createFile(
@@ -41,7 +42,7 @@ class ClasspathTest : LanguageServerTest() {
 
         testEditor.initialize(workspaceRoot)
 
-        assertThat(testEditor.getNotification("textDocument/publishDiagnostics", 2)).isNull()
+        assertThat(testEditor.getNotification("textDocument/publishDiagnostics")).isNull()
     }
 
     @Test
@@ -111,7 +112,7 @@ class ClasspathTest : LanguageServerTest() {
         )
 
         // Build should succeed.
-        val secondNotification = testEditor.getNotification("textDocument/publishDiagnostics", 2)
+        val secondNotification = testEditor.getNotification("textDocument/publishDiagnostics")
         assertJson(secondNotification) {
             node("params.uri").isEqualTo(testClass.toUri().toString())
             node("params.diagnostics").isArray.hasSize(0)

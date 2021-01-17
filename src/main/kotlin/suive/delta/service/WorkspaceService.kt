@@ -18,7 +18,7 @@ import java.nio.file.Paths
 import java.util.UUID
 
 class WorkspaceService(
-    private val classpathCollector: MavenClasspathCollector,
+    private val helper: MavenHelper,
     private val workspace: Workspace,
     private val taskService: TaskService,
     private val senderService: SenderService,
@@ -56,7 +56,7 @@ class WorkspaceService(
             val pom = workspace.externalRoot.resolve("pom.xml")
             val classpath = if (Files.exists(pom)) {
                 Logger.info { "Found pom.xml, resolving classpath" }
-                classpathCollector.collect(pom)
+                helper.collectDependencies(pom)
             } else {
                 emptyList()
             }
@@ -77,7 +77,7 @@ class WorkspaceService(
         params.changes.forEach { event ->
             val file = Paths.get(URI(event.uri))
             if (file.fileName.toString() == "pom.xml") {
-                workspace.updateClasspath(classpathCollector.collect(file))
+                workspace.updateClasspath(helper.collectDependencies(file))
             }
         }
     }
