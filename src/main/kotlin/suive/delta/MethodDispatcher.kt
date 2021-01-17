@@ -15,6 +15,7 @@ import suive.delta.model.NoParams
 import suive.delta.model.transport.ResponseError
 import suive.delta.model.transport.ResponseMessage
 import suive.delta.service.CompletionService
+import suive.delta.service.GlobalSearchService
 import suive.delta.service.MavenClasspathCollector
 import suive.delta.service.SenderService
 import suive.delta.service.TaskService
@@ -30,8 +31,15 @@ class MethodDispatcher(
     private val mavenClasspathCollector = MavenClasspathCollector()
     private val workspace = Workspace(senderService)
     private val taskService = TaskService()
-    private val workspaceService = WorkspaceService(mavenClasspathCollector, workspace, taskService, senderService)
-    private val completionService = CompletionService(workspace, senderService)
+    private val globalSearchService = GlobalSearchService(workspace)
+    private val workspaceService = WorkspaceService(
+        mavenClasspathCollector,
+        workspace,
+        taskService,
+        senderService,
+        globalSearchService
+    )
+    private val completionService = CompletionService(workspace, senderService, globalSearchService)
 
     private val paramsConverter = ObjectMapper().apply {
         registerModule(KotlinModule())

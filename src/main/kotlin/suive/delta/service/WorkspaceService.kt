@@ -21,7 +21,8 @@ class WorkspaceService(
     private val classpathCollector: MavenClasspathCollector,
     private val workspace: Workspace,
     private val taskService: TaskService,
-    private val senderService: SenderService
+    private val senderService: SenderService,
+    private val globalSearchService: GlobalSearchService
 ) {
     fun initialize(request: Request, params: InitializeParams) {
         if (params.rootUri != null) {
@@ -60,6 +61,7 @@ class WorkspaceService(
                 emptyList()
             }
             workspace.updateClasspath(classpath)
+            globalSearchService.indexClasses()
         }
 
         senderService.sendResponse(request.requestId, InitializeResult())

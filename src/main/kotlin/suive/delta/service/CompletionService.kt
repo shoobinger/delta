@@ -37,13 +37,16 @@ import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtSimpleNameExpression
+import org.jetbrains.kotlin.psi.KtUserType
 import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
+import org.jetbrains.kotlin.resolve.AnalyzingUtils
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.LazyTopDownAnalyzer
 import org.jetbrains.kotlin.resolve.TopDownAnalysisMode
 import org.jetbrains.kotlin.resolve.lazy.declarations.FileBasedDeclarationProviderFactory
 import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter
 import org.jetbrains.kotlin.resolve.scopes.MemberScope
+import org.jetbrains.kotlin.utils.sure
 import suive.delta.Request
 import suive.delta.Workspace
 import suive.delta.executeTimed
@@ -56,7 +59,8 @@ import java.nio.file.Files
 
 class CompletionService(
     private val workspace: Workspace,
-    private val senderService: SenderService
+    private val senderService: SenderService,
+    private val globalSearchService: GlobalSearchService
 ) {
     private val excludedFromCompletion: List<String> = listOf(
         "kotlin.jvm.internal",
@@ -99,7 +103,8 @@ class CompletionService(
         val file = workspace.toInternalPath(fileUri)
         val text = Files.readString(file)
         val offset = getOffset(text, row, col)
-        val modifiedText = text.substring(0, offset) + "COMPLETION_SUBSTITUTE" + text.substring(offset)
+        val completionSubstitute = "COMPLETION_SUBSTITUTE"
+        val modifiedText = text.substring(0, offset) + completionSubstitute + text.substring(offset)
 
         val ktFile = executeTimed("parse ${file.fileName}") {
             psiFileFactory.createFileFromText(
@@ -107,6 +112,24 @@ class CompletionService(
                 KotlinFileType.INSTANCE,
                 modifiedText
             ) as KtFile
+        }
+
+        val element = ktFile.findElementAt(offset)?.let { el ->
+            el.parentsWithSelf.find { it is KtExpression }
+        } ?: error("No element at point")
+
+        if (element.parent is KtUserType) {
+            val term = element.text.substring(0, element.text.length - completionSubstitute.length)
+            val searchResults = globalSearchService.search(term)
+
+            val completionItems = searchResults.map {
+                CompletionItem(it)
+            }
+            senderService.sendResponse(
+                request.requestId,
+                CompletionResult(items = completionItems, isIncomplete = true)
+            )
+            return
         }
 
         // TODO this should be saved and updated after each rebuild.
@@ -125,10 +148,6 @@ class CompletionService(
             analyzer.analyzeDeclarations(TopDownAnalysisMode.TopLevelDeclarations, listOf(ktFile))
         }
         val bc = trace.bindingContext
-
-        val element = ktFile.findElementAt(offset)?.let { el ->
-            el.parentsWithSelf.find { it is KtExpression }
-        } ?: error("No element at point")
 
         fun basicCompletions(): Collection<DeclarationDescriptor> = executeTimed("basicCompletions") {
             when (val parent = element.parent) {
@@ -187,7 +206,7 @@ class CompletionService(
                 val parameters = descriptor.valueParameters.joinToString(", ") { "${it.name}: ${it.type}" }
                 val returnType = descriptor.returnType
                 val label = "$name($parameters): $returnType"
-                val insertText = "$name()"
+                val insertText = "$name()" // TODO insert { } after function if lambda is the only param
                 CompletionItem(label, insertText)
             }
             is PropertyDescriptor, is LocalVariableDescriptor -> {

@@ -43,6 +43,9 @@ dependencies {
         exclude("org.hibernate")
     }
 
+    // Classpath scanning.
+    implementation("io.github.classgraph:classgraph:4.8.98")
+
     // JUnit.
     testImplementation(platform("org.junit:junit-bom:5.7.0"))
     testImplementation("org.junit.jupiter:junit-jupiter-api")
