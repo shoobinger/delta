@@ -26,8 +26,6 @@ class Builder(
 
     private var buildInProgress = AtomicBoolean(false)
 
-    private val messageCollector = DiagnosticMessageCollector(workspace)
-
     private val buildRunner = thread(start = true, name = "BuildRunner") {
         while (!Thread.interrupted()) {
             try {
@@ -53,6 +51,8 @@ class Builder(
                     noReflect = true
                     jvmTarget = "1.8"
                 }
+
+                val messageCollector = DiagnosticMessageCollector(workspace)
 
                 Logger.debug { "Compiler starting. classpath: ${args.classpath}" }
 

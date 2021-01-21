@@ -27,9 +27,7 @@ import suive.delta.util.NamedThreadFactory
 import java.util.concurrent.Executors
 import kotlin.reflect.KClass
 
-class Dispatcher(
-    private val sender: Sender
-) {
+class Dispatcher(private val sender: Sender) {
     private val mavenClasspathCollector = MavenHelper()
     private val workspace = Workspace()
     private val builder = Builder(workspace, sender)

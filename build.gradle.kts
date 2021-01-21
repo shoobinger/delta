@@ -4,6 +4,7 @@ val jacksonVersion: String = "2.12.0"
 
 plugins {
     kotlin("jvm").version("1.4.20-release-327")
+    kotlin("plugin.serialization") version "1.4.20-release-327"
     idea
     application
 }
@@ -31,6 +32,7 @@ dependencies {
     implementation(platform("com.fasterxml.jackson:jackson-bom:$jacksonVersion"))
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1")
 
     // Kotlin Compiler.
     implementation("org.jetbrains.kotlin:kotlin-compiler:$kotlinVersion")

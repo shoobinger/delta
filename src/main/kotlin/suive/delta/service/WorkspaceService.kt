@@ -14,11 +14,12 @@ import suive.delta.model.Registration
 import suive.delta.model.RegistrationParams
 import java.net.URI
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.UUID
 
 class WorkspaceService(
-    private val helper: MavenHelper,
+    private val mavenHelper: MavenHelper,
     private val workspace: Workspace,
     private val taskService: TaskService,
     private val sender: Sender,
@@ -58,12 +59,11 @@ class WorkspaceService(
             val pom = workspace.externalRoot.resolve("pom.xml")
             val classpath = if (Files.exists(pom)) {
                 Logger.info { "Found pom.xml, resolving classpath" }
-                helper.collectDependencies(pom)
+                mavenHelper.collectDependencies(pom)
             } else {
                 emptyList()
             }
-            workspace.updateClasspath(classpath)
-            builder.enqueueBuild(BuildRequest(cleanBuild = true, buildDelay = 0L))
+            updateClasspath(classpath)
             symbolRepository.indexClasses(classpath)
         }
 
@@ -80,8 +80,13 @@ class WorkspaceService(
         params.changes.forEach { event ->
             val file = Paths.get(URI(event.uri))
             if (file.fileName.toString() == "pom.xml") {
-                workspace.updateClasspath(helper.collectDependencies(file))
+                updateClasspath(mavenHelper.collectDependencies(file))
             }
         }
+    }
+
+    private fun updateClasspath(classpath: List<Path>) {
+        workspace.updateClasspath(classpath)
+        builder.enqueueBuild(BuildRequest(cleanBuild = true, buildDelay = 0L))
     }
 }

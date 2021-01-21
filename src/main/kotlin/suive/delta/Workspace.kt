@@ -37,14 +37,8 @@ class Workspace {
     fun toExternalUri(internalPath: Path): String =
         "file://" + externalRoot.resolve(internalRoot.relativize(internalPath))
 
-
-
     fun updateClasspath(paths: List<Path>) {
         classpath = paths.map { it.toFile() }
         Logger.info { "Classpath updated, new classpath $classpath" }
-    }
-
-    fun addPostBuildHook(hook: (internalRoot: Path) -> Unit) {
-//        postBuildHooks.add(hook)
     }
 }
