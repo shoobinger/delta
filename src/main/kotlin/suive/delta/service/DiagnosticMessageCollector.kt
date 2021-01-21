@@ -1,4 +1,4 @@
-package suive.delta.util
+package suive.delta.service
 
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
@@ -11,16 +11,18 @@ import suive.delta.model.Position
 import suive.delta.model.Range
 import java.nio.file.Paths
 
-class DiagnosticMessageCollector(
-    private val workspace: Workspace
-) : MessageCollector {
+class DiagnosticMessageCollector(private val workspace: Workspace) : MessageCollector {
     val diagnostics = mutableListOf<Pair<String, Diagnostic>>()
 
     override fun clear() {
         diagnostics.clear()
     }
 
-    override fun report(severity: CompilerMessageSeverity, message: String, location: CompilerMessageSourceLocation?) {
+    override fun report(
+        severity: CompilerMessageSeverity,
+        message: String,
+        location: CompilerMessageSourceLocation?
+    ) {
         Logger.debug(message)
         val diagnosticSeverity = toDiagnosticSeverity(severity)
         if (diagnosticSeverity != null && location != null) {

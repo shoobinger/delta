@@ -2,9 +2,9 @@ package suive.delta
 
 import org.tinylog.kotlin.Logger
 import java.io.BufferedReader
+import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
-import java.net.SocketException
 
 fun processStream(inputStream: InputStream): Sequence<String> {
     return sequence {
@@ -29,7 +29,7 @@ fun processStream(inputStream: InputStream): Sequence<String> {
                     yield(String(message))
                 }
             }
-        } catch (_: SocketException) {
+        } catch (_: IOException) {
             // Ignore closing exception.
         }
     }

@@ -39,28 +39,25 @@ import org.jetbrains.kotlin.psi.KtQualifiedExpression
 import org.jetbrains.kotlin.psi.KtSimpleNameExpression
 import org.jetbrains.kotlin.psi.KtUserType
 import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
-import org.jetbrains.kotlin.resolve.AnalyzingUtils
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.LazyTopDownAnalyzer
 import org.jetbrains.kotlin.resolve.TopDownAnalysisMode
 import org.jetbrains.kotlin.resolve.lazy.declarations.FileBasedDeclarationProviderFactory
 import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter
 import org.jetbrains.kotlin.resolve.scopes.MemberScope
-import org.jetbrains.kotlin.utils.sure
 import suive.delta.Request
 import suive.delta.Workspace
 import suive.delta.executeTimed
 import suive.delta.model.CompletionItem
 import suive.delta.model.CompletionResult
 import suive.delta.model.ProgressParams
-import suive.delta.util.DiagnosticMessageCollector
 import suive.delta.util.getOffset
 import java.nio.file.Files
 
 class CompletionService(
     private val workspace: Workspace,
-    private val senderService: SenderService,
-    private val globalSearchService: GlobalSearchService
+    private val sender: Sender,
+    private val symbolRepository: SymbolRepository
 ) {
     private val excludedFromCompletion: List<String> = listOf(
         "kotlin.jvm.internal",
@@ -119,13 +116,13 @@ class CompletionService(
         } ?: error("No element at point")
 
         if (element.parent is KtUserType) {
-            val term = element.text.substring(0, element.text.length - completionSubstitute.length)
-            val searchResults = globalSearchService.search(term)
+            val term = element.text.replace(completionSubstitute, "")
+            val searchResults = symbolRepository.search(term)
 
             val completionItems = searchResults.map {
                 CompletionItem(it)
             }
-            senderService.sendResponse(
+            sender.sendResponse(
                 request.requestId,
                 CompletionResult(items = completionItems, isIncomplete = true)
             )
@@ -168,7 +165,7 @@ class CompletionService(
         if (partialResultToken != null) {
             // Client requested partial results.
             // Send basic completions right away.
-            senderService.sendNotification(
+            sender.sendNotification(
                 "$/progress",
                 ProgressParams(
                     partialResultToken,
@@ -179,7 +176,7 @@ class CompletionService(
             // Compute and send more costly reference variants.
             val referenceVariants = referenceVariants()
             if (referenceVariants != null) {
-                senderService.sendNotification(
+                sender.sendNotification(
                     "$/progress", ProgressParams(
                         partialResultToken, CompletionResult(
                             true, referenceVariants.mapNotNull(::descriptorToItem)
@@ -188,11 +185,11 @@ class CompletionService(
                 )
             }
 
-            senderService.sendResponse(request.requestId, CompletionResult(items = emptyList()))
+            sender.sendResponse(request.requestId, CompletionResult(items = emptyList()))
         } else {
             // Send everything in the request response.
             val descriptors = referenceVariants() ?: basicCompletions()
-            senderService.sendResponse(
+            sender.sendResponse(
                 request.requestId,
                 CompletionResult(items = descriptors.mapNotNull(this::descriptorToItem))
             )

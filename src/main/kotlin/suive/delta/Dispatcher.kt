@@ -14,10 +14,12 @@ import suive.delta.model.MethodNotFound
 import suive.delta.model.NoParams
 import suive.delta.model.transport.ResponseError
 import suive.delta.model.transport.ResponseMessage
+import suive.delta.service.Builder
 import suive.delta.service.CompletionService
-import suive.delta.service.GlobalSearchService
+import suive.delta.service.Editor
 import suive.delta.service.MavenHelper
-import suive.delta.service.SenderService
+import suive.delta.service.Sender
+import suive.delta.service.SymbolRepository
 import suive.delta.service.TaskService
 import suive.delta.service.WorkspaceService
 import suive.delta.util.InvalidParamsException
@@ -25,21 +27,25 @@ import suive.delta.util.NamedThreadFactory
 import java.util.concurrent.Executors
 import kotlin.reflect.KClass
 
-class MethodDispatcher(
-    private val senderService: SenderService
+class Dispatcher(
+    private val sender: Sender
 ) {
     private val mavenClasspathCollector = MavenHelper()
-    private val workspace = Workspace(senderService)
+    private val workspace = Workspace()
+    private val builder = Builder(workspace, sender)
+    private val editor = Editor(builder)
     private val taskService = TaskService()
-    private val globalSearchService = GlobalSearchService(workspace)
+    private val globalSearchService = SymbolRepository()
     private val workspaceService = WorkspaceService(
         mavenClasspathCollector,
         workspace,
         taskService,
-        senderService,
-        globalSearchService
+        sender,
+        globalSearchService,
+        builder,
+        editor
     )
-    private val completionService = CompletionService(workspace, senderService, globalSearchService)
+    private val completionService = CompletionService(workspace, sender, globalSearchService)
 
     private val paramsConverter = ObjectMapper().apply {
         registerModule(KotlinModule())
@@ -92,12 +98,6 @@ class MethodDispatcher(
 
     private val workerThreadPool = Executors.newCachedThreadPool(NamedThreadFactory("Worker-"))
 
-    enum class ActionResult {
-        Success,
-        InvalidParams,
-        Error
-    }
-
     fun dispatch(
         request: Request,
         methodName: String,
@@ -107,7 +107,7 @@ class MethodDispatcher(
 
         if (actionUnit == null) {
             Logger.error { "Method not found: $methodName" }
-            senderService.send(
+            sender.send(
                 ResponseMessage.Error(
                     request.requestId,
                     ResponseError(MethodNotFound, methodName)
@@ -121,7 +121,7 @@ class MethodDispatcher(
                 actionUnit.performAction(request, paramsRaw ?: NoParams, paramsConverter)
             } catch (e: InvalidParamsException) {
                 Logger.error(e) { "Invalid params for method $methodName" }
-                senderService.send(
+                sender.send(
                     ResponseMessage.Error(
                         request.requestId,
                         ResponseError(InvalidParams, e.message ?: "N/A")
@@ -129,7 +129,7 @@ class MethodDispatcher(
                 )
             } catch (e: Exception) {
                 Logger.error(e) { "Action unit execution failed" }
-                senderService.send(
+                sender.send(
                     ResponseMessage.Error(
                         request.requestId,
                         ResponseError(InternalError, e.message ?: "N/A")

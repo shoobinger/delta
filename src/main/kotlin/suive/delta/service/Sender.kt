@@ -12,7 +12,7 @@ import java.util.concurrent.BlockingQueue
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 
-class SenderService(
+class Sender(
     private val outputStream: OutputStream,
     private val jsonConverter: ObjectMapper
 ) {

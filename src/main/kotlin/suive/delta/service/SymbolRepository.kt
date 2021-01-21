@@ -1,20 +1,34 @@
 package suive.delta.service
 
 import io.github.classgraph.ClassGraph
-import org.tinylog.kotlin.Logger
-import suive.delta.Workspace
 import suive.delta.data.SymbolSearchGraph
+import java.nio.file.Path
+import java.nio.file.Paths
 
-class GlobalSearchService(
-    private val workspace: Workspace
-) {
+class SymbolRepository {
+
     private val globalIndex = SymbolSearchGraph()
 
-    fun indexClasses() {
+    fun indexClasses(classpath: List<Path>) {
         ClassGraph()
+//                .acceptModules("java.base")
+//                .disableDirScanning()
+//                .j
+//                .enableSystemJarsAndModules()
+            .overrideClasspath(
+                listOf(Paths.get("/home/ivan/Desktop/javabase").toFile())
+                    + classpath
+            )
 //            .verbose()
 //            .enableSystemJarsAndModules()
-            .overrideClasspath(workspace.classpath)
+//                .overrideClasspath(workspace.classpath)
+//                .jars("/usr/lib/jvm/java-15-openjdk/jmods/java.base.jmod")
+//            .acceptPaths("/usr/lib/jvm/java-15-openjdk")
+//            .overrideClassLoaders(ClassLoader().)
+//            .overrideClassLoaders(object : ClassLoader() {
+//
+//            })
+//            .addModuleLayer(ModuleLayer())
 //            .also { classGraph ->
 //                Logger.info{workspace.classpath.toString()}
 //                workspace.classpath.forEach {
@@ -32,7 +46,6 @@ class GlobalSearchService(
     }
 
     fun search(term: String): List<String> {
-        indexClasses()
         return globalIndex.search(term)
     }
 }

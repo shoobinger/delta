@@ -15,7 +15,7 @@ import suive.delta.model.transport.ResponseMessage
 import suive.delta.model.transport.WithId
 import suive.delta.model.transport.WithMethod
 import suive.delta.model.transport.WithParams
-import suive.delta.service.SenderService
+import suive.delta.service.Sender
 import suive.delta.util.InvalidRequestException
 import java.io.InputStream
 import java.io.OutputStream
@@ -26,10 +26,10 @@ open class Server(private val inputStream: InputStream, private val outputStream
         configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     }
 
-    private val senderService = SenderService(outputStream, jsonConverter)
+    private val sender = Sender(outputStream, jsonConverter)
 
     fun start() {
-        val methodDispatcher = MethodDispatcher(senderService)
+        val dispatcher = Dispatcher(sender)
 
         Logger.info { "Started server" }
         for (input in processStream(inputStream)) {
@@ -39,11 +39,11 @@ open class Server(private val inputStream: InputStream, private val outputStream
                     jsonConverter.readValue<Message>(input)
                 } catch (e: JsonParseException) {
                     Logger.error(e) { "Can't parse incoming message [$input]" }
-                    senderService.send(ResponseMessage.Error(-1, ResponseError(ParseError, e.message ?: "N/A")))
+                    sender.send(ResponseMessage.Error(-1, ResponseError(ParseError, e.message ?: "N/A")))
                     continue
                 } catch (e: InvalidRequestException) {
                     Logger.error(e) { "Invalid JSON-RPC request [$input]" }
-                    senderService.send(ResponseMessage.Error(-1, ResponseError(InvalidRequest, e.message ?: "N/A")))
+                    sender.send(ResponseMessage.Error(-1, ResponseError(InvalidRequest, e.message ?: "N/A")))
                     continue
                 }
                 Logger.info { "Message received: $message" }
@@ -58,7 +58,7 @@ open class Server(private val inputStream: InputStream, private val outputStream
                     break
                 }
 
-                methodDispatcher.dispatch(Request(id), method, params)
+                dispatcher.dispatch(Request(id), method, params)
             } catch (e: Exception) {
                 Logger.error(e) { "Error in dispatcher" }
             }

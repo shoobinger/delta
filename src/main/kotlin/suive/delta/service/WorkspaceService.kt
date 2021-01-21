@@ -21,8 +21,10 @@ class WorkspaceService(
     private val helper: MavenHelper,
     private val workspace: Workspace,
     private val taskService: TaskService,
-    private val senderService: SenderService,
-    private val globalSearchService: GlobalSearchService
+    private val sender: Sender,
+    private val symbolRepository: SymbolRepository,
+    private val builder: Builder,
+    private val editor: Editor
 ) {
     fun initialize(request: Request, params: InitializeParams) {
         if (params.rootUri != null) {
@@ -32,7 +34,7 @@ class WorkspaceService(
 
         taskService.execute {
             Logger.info { "Registering dynamic client capabilities" }
-            senderService.sendRequest(
+            sender.sendRequest(
                 "client/registerCapability", RegistrationParams(
                     listOf(
                         Registration(
@@ -61,15 +63,16 @@ class WorkspaceService(
                 emptyList()
             }
             workspace.updateClasspath(classpath)
-            globalSearchService.indexClasses()
+            builder.enqueueBuild(BuildRequest(cleanBuild = true, buildDelay = 0L))
+            symbolRepository.indexClasses(classpath)
         }
 
-        senderService.sendResponse(request.requestId, InitializeResult())
+        sender.sendResponse(request.requestId, InitializeResult())
     }
 
     fun syncDocumentChanges(params: DidChangeTextDocumentParams) {
         params.contentChanges.forEach { change ->
-            workspace.enqueueChange(params.textDocument.uri, change)
+            editor.enqueueEdit(workspace.toInternalPath(params.textDocument.uri), change)
         }
     }
 
