@@ -20,7 +20,7 @@ import suive.delta.util.InvalidRequestException
 import java.io.InputStream
 import java.io.OutputStream
 
-open class Server(private val inputStream: InputStream, private val outputStream: OutputStream) {
+open class Server(private val inputStream: InputStream, outputStream: OutputStream) {
     private val jsonConverter = ObjectMapper().apply {
         registerModule(KotlinModule())
         configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)

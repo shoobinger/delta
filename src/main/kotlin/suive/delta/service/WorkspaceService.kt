@@ -87,6 +87,6 @@ class WorkspaceService(
 
     private fun updateClasspath(classpath: List<Path>) {
         workspace.updateClasspath(classpath)
-        builder.enqueueBuild(BuildRequest(cleanBuild = true, buildDelay = 0L))
+        builder.enqueueBuild(BuildRequest(cleanBuild = true, buildDelay = 0L)) // TODO ensure this build is not cancelled
     }
 }

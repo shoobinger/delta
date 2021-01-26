@@ -47,6 +47,8 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 
     testImplementation("net.javacrumbs.json-unit:json-unit-assertj:2.22.0")
+    testImplementation("org.testcontainers:testcontainers:1.15.1")
+    testImplementation("org.testcontainers:junit-jupiter:1.15.1")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
