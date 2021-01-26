@@ -2,7 +2,7 @@
 
 [![Build](https://github.com/suive/delta/workflows/Build/badge.svg)](https://github.com/suive/delta/actions?query=workflow%3ABuild)
 
-Delta is a Kotlin Language server (work-in-progress).
+Delta is a [language server](https://microsoft.github.io/language-server-protocol/overviews/lsp/overview/) for Kotlin (work-in-progress).
 Delta aims to be fast and helpful.
 
 ### Features
